@@ -9,8 +9,8 @@ var cors = require('cors');
 var databaseConfig = require('./config/database');
 var router = require('./app/routes');
 
-mongoose.connect('mongodb://localhost/reviewking');
-
+mongoose.connect('mongodb://careline:alex2005@ds040017.mlab.com:40017/careline');
+// mongoose.connect('mongodb://careline-db:dd1b871b-f747-4dbe-a355-e9ecebdc4fa2@https://careline-db.documents.azure.com:443');
 var conn = mongoose.connection;
 
 var GridFsStorage = require('multer-gridfs-storage');

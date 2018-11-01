@@ -7,6 +7,10 @@ var visitSchema = new mongoose.Schema({
     patientID: {
         type: String
     },
+    visitID: {
+        type: String
+    },
+
     providerID: {
         type: String
     },
