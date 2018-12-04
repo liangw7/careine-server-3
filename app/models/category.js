@@ -5,6 +5,9 @@ var categorySchema = new mongoose.Schema({
     name: {
         type: String
     },
+    displayName: {
+        type: String
+    },
     type: {
         type: String
     },
@@ -38,16 +41,55 @@ var categorySchema = new mongoose.Schema({
     orderType: {
         type: String
     },
+    context: {
+        type: String
+    },
+    uom: {
+        type: String
+    },
+    orderMaster:{
+        type: Object
+    },
+    isOrderMaster:{
+        type: String
+    },
     addMoreThanOnce: {
+        type: String
+    },
+    allowDuplicate: {
         type: String
     },
     options: [],
     obs: [],
     obSets: [],
-    profile: [],
+    activities: [],
+    profiles: [],
     calculationItems: [],
-    userProfile: { type: Object }
-
+    userProfile: { type: Object },
+    labs:[],
+    images:[],
+    forms:[],
+    synonyms:{
+        type: String
+    },
+    packageVolume:{
+        type: String
+    },
+    packageType:{
+        type: String
+    },
+    medForm:{
+        type: String
+    },
+    dose:{
+        type: String
+    },
+    resource:{
+        type: String
+    },
+    route:{
+        type: String
+    }
 
 }, {
     timestamps: true

@@ -1,26 +1,19 @@
 var mongoose = require('mongoose');
 
-var visitSchema = new mongoose.Schema({
+var screeningSchema = new mongoose.Schema({
     desc: {
         type: String
     },
     patientID: {
         type: String
     },
-    visitID: {
-        type: String
-    },
-
-    providerID: {
-        type: String
-    },
     type: {
         type: String
     },
-    profile: {
+    form: {
         type: Object
     },
-    status: {
+    visitID:{
         type: String
     }
 
@@ -28,4 +21,4 @@ var visitSchema = new mongoose.Schema({
     timestamps: true
 });
 
-module.exports = mongoose.model('visit', visitSchema);
+module.exports = mongoose.model('screening', screeningSchema);

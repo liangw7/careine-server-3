@@ -15,29 +15,6 @@ exports.getDatas = function(req, res, next) {
 }
 exports.getDatasByPatient = function(req, res, next) {
 
-    Data.find({ patientID: req.params.patientID }, function(err, data) {
-        if (err) {
-            res.send(err);
-            console.log(err);
-
-        }
-        res.json(data);
-
-        var _send = res.send;
-        var sent = false;
-        res.send = function(data) {
-            if (sent) return;
-            _send.bind(res)(data);
-            sent = true;
-        };
-        next();
-
-    });
-
-}
-
-exports.getDatasByOb = function(req, res, next) {
-
     Data.find(req.body, function(err, data) {
         if (err) {
             res.send(err);
@@ -58,6 +35,69 @@ exports.getDatasByOb = function(req, res, next) {
     });
 
 }
+
+exports.getDatasByVisit = function(req, res, next) {
+
+    Data.find( req.body,function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
+}
+
+exports.getDatasByFilter = function(req, res, next) {
+ 
+    Data.find( {$and:req.body.filter}, function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
+}
+
+exports.getById = function(req, res, next) {
+
+  
+
+    Data.findById({ _id: req.params.dataId }, function(err, Category) {
+
+        if (err) {
+            res.send(err);
+        }
+
+        res.json(Category);
+
+    });
+
+}
+
 exports.Create = function(req, res, next) {
     console.log('request', req.body)
     Data.create(req.body, function(err, Data) {

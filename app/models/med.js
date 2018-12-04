@@ -13,6 +13,21 @@ var medSchema = new mongoose.Schema({
     status: {
         type: String
 
+    },
+    visitId: {
+        type: String
+    },
+    providerId: {
+        type: String
+    },
+    content:{
+        type: Object
+    },
+    displayName: {
+        type: String
+    },
+    status: {
+        type: String
     }
 
 }, {

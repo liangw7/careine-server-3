@@ -1,31 +1,31 @@
 var mongoose = require('mongoose');
 
-var visitSchema = new mongoose.Schema({
+var medSchema = new mongoose.Schema({
     desc: {
         type: String
     },
     patientID: {
         type: String
     },
-    visitID: {
-        type: String
-    },
-
-    providerID: {
-        type: String
-    },
     type: {
         type: String
     },
-    profile: {
-        type: Object
-    },
     status: {
         type: String
+
+    },
+    visitId: {
+        type: String
+    },
+    providerId: {
+        type: String
+    },
+    content:{
+        type: Object
     }
 
 }, {
     timestamps: true
 });
 
-module.exports = mongoose.model('visit', visitSchema);
+module.exports = mongoose.model('order', medSchema);

@@ -5,10 +5,19 @@ var dataSchema = new mongoose.Schema({
     patientID: {
         type: String
     },
-    obID: {
+    patientEmail:{
+        type: String
+    },
+    visitID:{
         type: String
     },
 
+    obID: {
+        type: String
+    },
+    obType:{
+        type:String
+    },
     obName: {
         type: String
     },

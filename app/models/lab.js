@@ -8,15 +8,34 @@ var ImageSchema = new mongoose.Schema({
     name: {
         type: String
     },
+    displayName: {
+        type: String
+    },
     about: {
         type: String
     },
     patientID: {
         type: String
     },
-    requestID: {
+    visitId: {
         type: String
     },
+    orderId: {
+        type: String
+    },
+    providerId: {
+        type: String
+    },
+    content:{
+        type: Object
+    },
+    displayName: {
+        type: String
+    },
+    status: {
+        type: String
+    }
+
 }, {
     timestamps: true
 });

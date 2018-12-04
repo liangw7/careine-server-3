@@ -10,8 +10,11 @@ var MedicalHistorySchema = new mongoose.Schema({
     type: {
         type: String
     },
-    content: {
+    form: {
         type: Object
+    },
+    visitID:{
+        type: String
     }
 
 }, {

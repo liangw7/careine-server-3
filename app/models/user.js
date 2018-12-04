@@ -19,7 +19,9 @@ var UserSchema = new mongoose.Schema({
         enum: ['admin', 'provider', 'patient', 'market']
     },
 
-    activity: { type: Object }
+    activity: { type: Object },
+
+    profiles:[]
 
 }, {
     timestamps: true

@@ -1,6 +1,7 @@
 var User = require('../models/user');
 var mongoose = require('mongoose');
 var fs = require('fs');
+//var ObjectId = mongoose.Types.ObjectId;
 
 exports.getUsers = function(req, res, next) {
 
@@ -28,7 +29,9 @@ exports.getUsers = function(req, res, next) {
 
 exports.getUserById = function(req, res, next) {
     // mongoose.Types.ObjectId.isValid(req.params.User_id);
-    User.findById({ _id: req.params.User_id },
+   // var new_id=new ObjectId(req.params.User_id);
+  //  User.findById({ _id: mongoose.Types.ObjectId(req.params.User_id) },
+  User.findById({ _id: req.params.User_id },
         function(err, data) {
 
             if (err) {
