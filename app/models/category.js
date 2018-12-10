@@ -5,7 +5,7 @@ var categorySchema = new mongoose.Schema({
     name: {
         type: String
     },
-    displayName: {
+    internalName: {
         type: String
     },
     type: {
@@ -66,9 +66,11 @@ var categorySchema = new mongoose.Schema({
     profiles: [],
     calculationItems: [],
     userProfile: { type: Object },
+    reportForm: {type: Object},
     labs:[],
     images:[],
     forms:[],
+    selectedObs:[],
     synonyms:{
         type: String
     },

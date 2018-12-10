@@ -11,7 +11,12 @@ var dataSchema = new mongoose.Schema({
     visitID:{
         type: String
     },
-
+    followupID:{
+        type: String
+    },
+    source:{
+        type: String
+    },
     obID: {
         type: String
     },

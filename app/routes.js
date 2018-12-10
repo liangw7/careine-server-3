@@ -80,6 +80,7 @@ module.exports = function(app) {
     dataRoutes.delete('/:dataID', requireAuth, DataController.Delete);
     dataRoutes.post('/patient', requireAuth, DataController.getDatasByPatient);
     dataRoutes.post('/visit', requireAuth, DataController.getDatasByVisit);
+    dataRoutes.post('/followup', requireAuth, DataController.getDatasByFollowup);
     dataRoutes.post('/filter', requireAuth, DataController.getDatasByFilter);
     dataRoutes.get('/dataId', requireAuth, DataController.getById);
     dataRoutes.post('/update', requireAuth, DataController.Update);
@@ -187,6 +188,7 @@ module.exports = function(app) {
     CategoryRoutes.get('/field/:field', CategoryController.getByField);
     CategoryRoutes.get('/profileType/:profileType', CategoryController.getByProfileType);
     CategoryRoutes.get('/activityType/:activityType', CategoryController.getByActivityType);
+    CategoryRoutes.get('/formType/:formType', CategoryController.getByFormType);
     CategoryRoutes.post('/fields', CategoryController.getByFields);
     CategoryRoutes.post('/orderMaster', CategoryController.getOrderMasters);
     CategoryRoutes.delete('/:categoryId', requireAuth, CategoryController.delete);

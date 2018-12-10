@@ -149,6 +149,31 @@ exports.getByActivityType = function(req, res, next) {
     });
 
 }
+
+exports.getByFormType = function(req, res, next) {
+
+    console.log('formType', req.params)
+
+    Category.find({ 'formType': req.params.formType }, function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
+}
 exports.getByProfileType = function(req, res, next) {
 
     console.log('profileType', req.params)
