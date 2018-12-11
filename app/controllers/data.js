@@ -32,7 +32,7 @@ exports.getDatasByPatient = function(req, res, next) {
         };
         next();
 
-    });
+    }).sort({"createdAt": 'desc'});
 
 }
 
@@ -55,13 +55,13 @@ exports.getDatasByFollowup = function(req, res, next) {
         };
         next();
 
-    });
+    }).sort({"createdAt": 'desc'});
 
 }
 
 exports.getDatasByVisit = function(req, res, next) {
 
-    Data.find( req.body,function(err, data) {
+    Data.find(req.body,function(err, data) {
         if (err) {
             res.send(err);
             console.log(err);
@@ -78,7 +78,7 @@ exports.getDatasByVisit = function(req, res, next) {
         };
         next();
 
-    });
+    }).sort({"createdAt": 'desc'});
 
 }
 
