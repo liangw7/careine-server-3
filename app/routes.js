@@ -79,6 +79,7 @@ module.exports = function(app) {
     dataRoutes.post('/', requireAuth, DataController.Create);
     dataRoutes.delete('/:dataID', requireAuth, DataController.Delete);
     dataRoutes.post('/patient', requireAuth, DataController.getDatasByPatient);
+    dataRoutes.post('/ob', requireAuth, DataController.getDatasByOb);
     dataRoutes.post('/visit', requireAuth, DataController.getDatasByVisit);
     dataRoutes.post('/followup', requireAuth, DataController.getDatasByFollowup);
     dataRoutes.post('/filter', requireAuth, DataController.getDatasByFilter);

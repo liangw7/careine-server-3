@@ -67,6 +67,7 @@ var categorySchema = new mongoose.Schema({
     calculationItems: [],
     userProfile: { type: Object },
     reportForm: {type: Object},
+    qualityControlForm: {type: Object},
     labs:[],
     images:[],
     forms:[],
