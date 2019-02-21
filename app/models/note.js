@@ -15,7 +15,10 @@ var noteSchema = new mongoose.Schema({
     },
     visitID:{
         type: String
-    }
+    },
+    userID: {
+        type: String
+    },
 
 }, {
     timestamps: true

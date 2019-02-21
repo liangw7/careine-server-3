@@ -28,9 +28,7 @@ exports.getUsers = function(req, res, next) {
 
 
 exports.getUserById = function(req, res, next) {
-    // mongoose.Types.ObjectId.isValid(req.params.User_id);
-   // var new_id=new ObjectId(req.params.User_id);
-  //  User.findById({ _id: mongoose.Types.ObjectId(req.params.User_id) },
+  
   User.findById({ _id: req.params.User_id },
         function(err, data) {
 
@@ -75,6 +73,32 @@ exports.getUsersByRole = function(req, res, next) {
             next();
 
         });
+
+}
+
+exports.getUsersByProfile = function(req, res, next) {
+
+   // console.log('req.body', req.body)
+
+    User.find(req.body, function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
 
 }
 

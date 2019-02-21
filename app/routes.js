@@ -12,6 +12,7 @@ var AuthenticationController = require('./controllers/authentication'),
     ScreeningController = require('./controllers/screening'),
     CategoryController = require('./controllers/categories'),
     DataController = require('./controllers/data'),
+    ReportController = require('./controllers/report'),
     //    Image = require('./models/image');
     LabController = require('./controllers/labs'),
     OrderController = require('./controllers/orders'),
@@ -20,6 +21,8 @@ var AuthenticationController = require('./controllers/authentication'),
     passportService = require('../config/passport'),
     passport = require('passport');
 fs = require('fs');
+
+var roleList=['admin', 'provider', 'patient', 'market','specialist'];
 var requireAuth = passport.authenticate('jwt', { session: false }),
     requireLogin = passport.authenticate('local', { session: false });
 
@@ -29,29 +32,30 @@ module.exports = function(app) {
     var apiRoutes = express.Router(),
         authRoutes = express.Router(),
         todoRoutes = express.Router();
-    visitRoutes = express.Router();
-    pathwayRoutes = express.Router();
-    followupRoutes = express.Router();
-    MedicalHistoryRoutes = express.Router();
-    noteRoutes = express.Router();
-    MedRoutes = express.Router();
-    RequestRoutes = express.Router();
-    userRoutes = express.Router();
-    imageRoutes = express.Router();
-    labRoutes = express.Router();
-    orderRoutes = express.Router();
-    screeningRoutes = express.Router();
-    CategoryRoutes = express.Router();
-    dataRoutes = express.Router();
-    // Auth Routes
-    apiRoutes.use('/auth', authRoutes);
+        visitRoutes = express.Router();
+        pathwayRoutes = express.Router();
+        followupRoutes = express.Router();
+        MedicalHistoryRoutes = express.Router();
+        noteRoutes = express.Router();
+        MedRoutes = express.Router();
+        RequestRoutes = express.Router();
+        userRoutes = express.Router();
+        imageRoutes = express.Router();
+        labRoutes = express.Router();
+        orderRoutes = express.Router();
+        screeningRoutes = express.Router();
+        CategoryRoutes = express.Router();
+        dataRoutes = express.Router();
+        reportRoutes = express.Router();
+        // Auth Routes
+        apiRoutes.use('/auth', authRoutes);
 
-    authRoutes.post('/register', AuthenticationController.register);
-    authRoutes.post('/login', requireLogin, AuthenticationController.login);
+        authRoutes.post('/register', AuthenticationController.register);
+        authRoutes.post('/login', requireLogin, AuthenticationController.login);
 
-    authRoutes.get('/protected', requireAuth, function(req, res) {
-        res.send({ content: 'Success' });
-    });
+        authRoutes.get('/protected', requireAuth, function(req, res) {
+            res.send({ content: 'Success' });
+        });
 
     // Todo Routes
     apiRoutes.use('/todos', todoRoutes);
@@ -75,20 +79,29 @@ module.exports = function(app) {
 
     // Data Routes
     apiRoutes.use('/datas', dataRoutes);
-    dataRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'patient']), DataController.getDatas);
+    dataRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), DataController.getDatas);
     dataRoutes.post('/', requireAuth, DataController.Create);
     dataRoutes.delete('/:dataID', requireAuth, DataController.Delete);
     dataRoutes.post('/patient', requireAuth, DataController.getDatasByPatient);
     dataRoutes.post('/ob', requireAuth, DataController.getDatasByOb);
     dataRoutes.post('/visit', requireAuth, DataController.getDatasByVisit);
+    dataRoutes.post('/order', requireAuth, DataController.getDatasByOrder);
     dataRoutes.post('/followup', requireAuth, DataController.getDatasByFollowup);
     dataRoutes.post('/filter', requireAuth, DataController.getDatasByFilter);
     dataRoutes.get('/dataId', requireAuth, DataController.getById);
     dataRoutes.post('/update', requireAuth, DataController.Update);
 
+     //Report Routes
+     apiRoutes.use('/reports', reportRoutes);
+     reportRoutes.post('/', requireAuth, ReportController.Create);
+     reportRoutes.delete('/:reportId', requireAuth, ReportController.Delete);
+     reportRoutes.post('/filter', requireAuth, ReportController.getReportsByFilter);
+     reportRoutes.get('/reportId', requireAuth, ReportController.getById);
+     reportRoutes.post('/update', requireAuth, ReportController.Update);
+
     // followup Routes
     apiRoutes.use('/followups', followupRoutes);
-    followupRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'patient']), FollowupController.getFollowups);
+    followupRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), FollowupController.getFollowups);
     followupRoutes.post('/', requireAuth, FollowupController.createFollowup);
     followupRoutes.delete('/:visitID', requireAuth, FollowupController.deleteFollowup);
     followupRoutes.get('/patient/:patientID', requireAuth, FollowupController.getFollowupsByPatient);
@@ -110,20 +123,22 @@ module.exports = function(app) {
 
     pathwayRoutes.get('/requester/:requesterID', requireAuth, PathwayController.getPathwayByRequester);
     pathwayRoutes.post('/update', requireAuth, PathwayController.UpdatePathway);
-
+  
     // User Routes
     apiRoutes.use('/users', userRoutes);
-    userRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'patient']), UserController.getUsers);
-    userRoutes.get('/:User_id', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.getUserById);
-    userRoutes.post('/', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.createUser);
+    userRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUsers);
+    userRoutes.get('/:User_id', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUserById);
+    userRoutes.post('/', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.createUser);
     // userRoutes.get('/role/:role', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.getUsersByRole);
-    userRoutes.get('/role/:role', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'patient']), UserController.getUsersByRole);
-    userRoutes.get('/email/:email', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'patient']), UserController.getUserByEmail);
+    userRoutes.get('/role/:role', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUsersByRole);
+    userRoutes.post('/profile', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUsersByProfile);
+  
+    userRoutes.get('/email/:email', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUserByEmail);
 
-    userRoutes.post('/getProfilePhoto', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'patient']), UserController.getProfilePhoto);
-    userRoutes.post('/update', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'patient']), AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.updateUser);
+    userRoutes.post('/getProfilePhoto', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getProfilePhoto);
+    userRoutes.post('/update', requireAuth, AuthenticationController.roleAuthorization(roleList), AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.updateUser);
 
-    userRoutes.delete('/:User_id', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'patient']), AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.deleteUser);
+    userRoutes.delete('/:User_id', requireAuth, AuthenticationController.roleAuthorization(roleList), AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.deleteUser);
 
     // MedicalHistory Routes
     apiRoutes.use('/MedicalHistory', MedicalHistoryRoutes);
@@ -174,6 +189,7 @@ module.exports = function(app) {
        orderRoutes.get('/:orderId', requireAuth, OrderController.getById);
        orderRoutes.post('/patient', requireAuth, OrderController.getByPatient);
        orderRoutes.post('/visit', requireAuth, OrderController.getByVisit);
+       orderRoutes.post('/type', requireAuth, OrderController.getByType);
        orderRoutes.post('/Update', requireAuth, OrderController.Update);
        orderRoutes.get('/', requireAuth, OrderController.get);
        orderRoutes.post('/', requireAuth, OrderController.create);

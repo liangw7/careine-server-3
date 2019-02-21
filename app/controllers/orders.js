@@ -74,6 +74,29 @@ exports.getByVisit = function(req, res, next) {
 
 }
 
+exports.getByType = function(req, res, next) {
+
+    Order.find(req.body, function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
+}
+
 
 exports.Update = function(req, res, next) {
 

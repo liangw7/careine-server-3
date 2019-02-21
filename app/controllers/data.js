@@ -104,15 +104,40 @@ exports.getDatasByVisit = function(req, res, next) {
     }).sort({"createdAt": 'desc'});
 
 }
+exports.getDatasByOrder = function(req, res, next) {
 
-exports.getDatasByFilter = function(req, res, next) {
- 
-    Data.find( {$and:req.body.filter}, function(err, data) {
+    Data.find(req.body,function(err, data) {
         if (err) {
             res.send(err);
             console.log(err);
 
         }
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    }).sort({"createdAt": 'desc'});
+
+}
+
+exports.getDatasByFilter = function(req, res, next) {
+
+    console.log ('filter',req.body.filter)
+ 
+    Data.find( req.body.filter, function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        console.log ('data', data)
         res.json(data);
 
         var _send = res.send;

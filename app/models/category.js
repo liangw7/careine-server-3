@@ -66,11 +66,13 @@ var categorySchema = new mongoose.Schema({
     profiles: [],
     calculationItems: [],
     userProfile: { type: Object },
+    profile: { type: Object },
     reportForm: {type: Object},
     qualityControlForm: {type: Object},
     labs:[],
     images:[],
     forms:[],
+    patientLists: [],
     selectedObs:[],
     synonyms:{
         type: String

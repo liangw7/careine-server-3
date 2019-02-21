@@ -7,11 +7,11 @@ var visitSchema = new mongoose.Schema({
     patientID: {
         type: String
     },
-    visitID: {
-        type: String
-    },
 
     providerID: {
+        type: String
+    },
+    orderID: {
         type: String
     },
     type: {

@@ -16,7 +16,7 @@ var UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['admin', 'provider', 'patient', 'market']
+        enum: ['admin', 'provider', 'patient', 'market', 'specialist']
     },
 
     activity: { type: Object },
