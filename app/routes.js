@@ -16,7 +16,7 @@ var AuthenticationController = require('./controllers/authentication'),
     //    Image = require('./models/image');
     LabController = require('./controllers/labs'),
     OrderController = require('./controllers/orders'),
-
+    DiagnosisController = require('./controllers/diagnosis'),
     express = require('express'),
     passportService = require('../config/passport'),
     passport = require('passport');
@@ -47,6 +47,7 @@ module.exports = function(app) {
         CategoryRoutes = express.Router();
         dataRoutes = express.Router();
         reportRoutes = express.Router();
+        diagnosisRoutes = express.Router();
         // Auth Routes
         apiRoutes.use('/auth', authRoutes);
 
@@ -77,6 +78,16 @@ module.exports = function(app) {
     visitRoutes.get('/requester/:requesterID', requireAuth, VisitController.getVisitsByRequester);
     visitRoutes.post('/update', requireAuth, VisitController.UpdateVisit);
 
+  // Diagnosis Routes
+    apiRoutes.use('/diagnosis', diagnosisRoutes);    
+    diagnosisRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), DiagnosisController.getAllDiagnosis);
+    diagnosisRoutes.post('/', requireAuth, DiagnosisController.Create);
+    diagnosisRoutes.delete('/:diagnosisId', requireAuth, DiagnosisController.Delete);
+    diagnosisRoutes.post('/filter', requireAuth, DiagnosisController.getByFilter);
+    diagnosisRoutes.get('/diagnosisId', requireAuth, DiagnosisController.getById);
+    diagnosisRoutes.post('/update', requireAuth, DiagnosisController.Update);
+
+  
     // Data Routes
     apiRoutes.use('/datas', dataRoutes);
     dataRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), DataController.getDatas);
