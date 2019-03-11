@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
 
-var medSchema = new mongoose.Schema({
+var orderSchema = new mongoose.Schema({
     desc: {
         type: String
     },
@@ -32,4 +32,4 @@ var medSchema = new mongoose.Schema({
     timestamps: true
 });
 
-module.exports = mongoose.model('order', medSchema);
+module.exports = mongoose.model('order', orderSchema);

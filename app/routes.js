@@ -13,6 +13,8 @@ var AuthenticationController = require('./controllers/authentication'),
     CategoryController = require('./controllers/categories'),
     DataController = require('./controllers/data'),
     ReportController = require('./controllers/report'),
+    MailController = require('./controllers/mail'),
+    UploadDataController = require('./controllers/upload'),
     //    Image = require('./models/image');
     LabController = require('./controllers/labs'),
     OrderController = require('./controllers/orders'),
@@ -20,7 +22,9 @@ var AuthenticationController = require('./controllers/authentication'),
     express = require('express'),
     passportService = require('../config/passport'),
     passport = require('passport');
-fs = require('fs');
+    var path = require('path');
+    var  fs = require('fs');
+    var multer = require('multer');
 
 var roleList=['admin', 'provider', 'patient', 'market','specialist'];
 var requireAuth = passport.authenticate('jwt', { session: false }),
@@ -28,6 +32,18 @@ var requireAuth = passport.authenticate('jwt', { session: false }),
 
 module.exports = function(app) {
 
+    const DIR = './uploads';
+ 
+    let storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+          cb(null, DIR);
+        },
+        filename: (req, file, cb) => {
+            console.log ('file', file.fieldname);
+          cb(null, file.fieldname + '-' + file.originalname);
+        }
+    });
+    let upload = multer({storage: storage});
 
     var apiRoutes = express.Router(),
         authRoutes = express.Router(),
@@ -48,6 +64,9 @@ module.exports = function(app) {
         dataRoutes = express.Router();
         reportRoutes = express.Router();
         diagnosisRoutes = express.Router();
+        mailRoutes = express.Router();
+        uploadDataRoutes = express.Router();
+        uploadRoutes=express.Router();
         // Auth Routes
         apiRoutes.use('/auth', authRoutes);
 
@@ -57,7 +76,51 @@ module.exports = function(app) {
         authRoutes.get('/protected', requireAuth, function(req, res) {
             res.send({ content: 'Success' });
         });
+   //upload routes
+        apiRoutes.use('/upload', uploadRoutes);
 
+        uploadRoutes.get('/', function (req, res) {
+            res.end('file catcher example');
+        });
+
+        uploadRoutes.get('/:filename', function( req, res, next){
+
+            var filename = req.params.filename,
+               
+                root = DIR+'/';
+        
+            var options = {
+                root: root,
+                dotfiles: 'deny',
+                headers: {
+                    'x-timestamp': Date.now(),
+                    'x-sent': true
+                }
+            };
+        
+            res.sendFile(filename, options, (err) => {
+                if (err) {
+                    next(err);
+                } else {
+                    console.log('Sent:', filename);
+                }
+            });
+        })
+
+        uploadRoutes.post('/',upload.single('photo'), function (req, res) {
+            if (!req.file) {
+                console.log("No file received");
+                return res.send({
+                    success: false
+                });
+            
+                } else {
+                console.log('file received');
+                return res.send({
+                    success: true
+                })
+                }
+        });     
     // Todo Routes
     apiRoutes.use('/todos', todoRoutes);
     todoRoutes.get('/', requireAuth, TodoController.getTodos);
@@ -86,6 +149,23 @@ module.exports = function(app) {
     diagnosisRoutes.post('/filter', requireAuth, DiagnosisController.getByFilter);
     diagnosisRoutes.get('/diagnosisId', requireAuth, DiagnosisController.getById);
     diagnosisRoutes.post('/update', requireAuth, DiagnosisController.Update);
+    // Mail Routes
+    apiRoutes.use('/mail', mailRoutes);    
+    mailRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList),  MailController.getAllMail);
+    mailRoutes.post('/', requireAuth,  MailController.Create);
+    mailRoutes.delete('/:mailId', requireAuth,  MailController.Delete);
+    mailRoutes.post('/filter', requireAuth,  MailController.getByFilter);
+    mailRoutes.get('/mailId', requireAuth, MailController.getById);
+    mailRoutes.post('/update', requireAuth,  MailController.Update);
+
+    // uploadDataRoutes
+    apiRoutes.use('/uploadData', uploadDataRoutes);    
+    uploadDataRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList),  UploadDataController.getAll);
+    uploadDataRoutes.post('/', requireAuth,  UploadDataController.Create);
+    uploadDataRoutes.delete('/:mailId', requireAuth,  UploadDataController.Delete);
+    uploadDataRoutes.post('/filter', requireAuth,  UploadDataController.getByFilter);
+    uploadDataRoutes.get('/mailId', requireAuth, UploadDataController.getById);
+    uploadDataRoutes.post('/update', requireAuth, UploadDataController.Update);
 
   
     // Data Routes
@@ -138,10 +218,10 @@ module.exports = function(app) {
     // User Routes
     apiRoutes.use('/users', userRoutes);
     userRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUsers);
-    userRoutes.get('/:User_id', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUserById);
+    userRoutes.get('/:User_id', requireAuth,  UserController.getUserById);
     userRoutes.post('/', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.createUser);
     // userRoutes.get('/role/:role', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.getUsersByRole);
-    userRoutes.get('/role/:role', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUsersByRole);
+    userRoutes.get('/role/:role', requireAuth,  UserController.getUsersByRole);
     userRoutes.post('/profile', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUsersByProfile);
   
     userRoutes.get('/email/:email', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUserByEmail);

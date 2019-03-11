@@ -5,6 +5,9 @@ var reportSchema = new mongoose.Schema({
     profileID: {
         type: String
     },
+    patientID: {
+        type: String
+    },
     obSetID: {
         type: String
     },
