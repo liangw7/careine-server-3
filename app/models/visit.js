@@ -22,8 +22,26 @@ var visitSchema = new mongoose.Schema({
     },
     status: {
         type: String
+    }, 
+    availableAtYear: {
+        type: Number
+    },
+    availableAtMonth: {
+        type: Number
+    },
+    availableAtDate: {
+        type: Number
+    },
+    availableAtHours: {
+        type: Number
+    },
+    availableAtMinutes: {
+        type: Number
+    },
+    reservedAt: {
+        type: Date
     }
-
+  
 }, {
     timestamps: true
 });

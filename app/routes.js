@@ -137,6 +137,7 @@ module.exports = function(app) {
     visitRoutes.post('/', requireAuth, VisitController.createVisit);
     visitRoutes.delete('/:visitID', requireAuth, VisitController.deleteVisit);
     visitRoutes.post('/patient', requireAuth, VisitController.getVisitsByPatient);
+    visitRoutes.post('/filter', requireAuth, VisitController.getVisitsByFilter);
     visitRoutes.get('/provider/:providerID', requireAuth, VisitController.getVisitsByProvider);
     visitRoutes.get('/requester/:requesterID', requireAuth, VisitController.getVisitsByRequester);
     visitRoutes.post('/update', requireAuth, VisitController.UpdateVisit);

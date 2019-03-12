@@ -37,6 +37,31 @@ exports.getVisitsByPatient = function(req, res, next) {
     });
 
 }
+
+exports.getVisitsByFilter = function(req, res, next) {
+
+    console.log('req.body.filter', req.body.filter)
+
+    Visit.find(req.body.filter, function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
+}
 exports.getVisitsByProvider = function(req, res, next) {
 
     Visit.find({ providerID: req.params.providerID }, function(err, data) {
