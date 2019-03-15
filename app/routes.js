@@ -295,6 +295,7 @@ module.exports = function(app) {
     CategoryRoutes.get('/', CategoryController.get);
     CategoryRoutes.post('/', CategoryController.create);
     CategoryRoutes.get('/field/:field', CategoryController.getByField);
+    CategoryRoutes.post('/filter', CategoryController.getByFilter);
     CategoryRoutes.get('/profileType/:profileType', CategoryController.getByProfileType);
     CategoryRoutes.get('/activityType/:activityType', CategoryController.getByActivityType);
     CategoryRoutes.get('/formType/:formType', CategoryController.getByFormType);

@@ -18,11 +18,10 @@ var UserSchema = new mongoose.Schema({
         type: String,
         enum: ['admin', 'provider', 'patient', 'market', 'specialist']
     },
-
     activity: { type: Object },
-
-    profiles:[]
-
+    profiles:[],
+    allergyList:[],
+    problems:[]
 }, {
     timestamps: true
 });
