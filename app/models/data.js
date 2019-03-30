@@ -23,9 +23,22 @@ var dataSchema = new mongoose.Schema({
     followupID:{
         type: String
     },
-    source:{
+    problemID:{
         type: String
     },
+    medicationID:{
+        type: String
+    },
+    scheduleID:{
+        type: String
+    },
+    registryUserID: {
+        type: String
+    },
+    registryUserEmail:{
+        type:String
+    },
+    
     obID: {
         type: String
     },
@@ -35,7 +48,6 @@ var dataSchema = new mongoose.Schema({
     obName: {
         type: String
     },
-
     value: {
         type: String
     },

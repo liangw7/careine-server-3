@@ -15,13 +15,42 @@ var UserSchema = new mongoose.Schema({
 
     },
     role: {
-        type: String,
-        enum: ['admin', 'provider', 'patient', 'market', 'specialist']
+        type: String
+    },
+    name:{
+        type: String
+    },
+    phone:{
+        type: String
+    },
+    ssn:{
+        type: String
+    },
+    gender:{
+        type: String
+    },
+    age:{
+        type: String
+    },
+    birthday:{
+        type: String
+    },
+    photo:{
+        type: String
+    },
+    color:{
+        type: String
     },
     activity: { type: Object },
     profiles:[],
+    service: { type: Object },
+    providers:[],
+    serviceList:[],
     allergyList:[],
-    problems:[]
+    problems:[],
+    userID: {
+        type: String
+    }
 }, {
     timestamps: true
 });

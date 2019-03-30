@@ -34,9 +34,9 @@ exports.getById = function(req, res, next) {
 
 exports.getByFilter = function(req, res, next) {
 
-    console.log ('filter',req.body.filter)
+    
  
-    Diagnosis.find( req.body.filter, function(err, data) {
+    Diagnosis.find( req.body, function(err, data) {
         if (err) {
             res.send(err);
             console.log(err);

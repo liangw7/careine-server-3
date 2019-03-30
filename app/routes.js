@@ -15,6 +15,7 @@ var AuthenticationController = require('./controllers/authentication'),
     ReportController = require('./controllers/report'),
     MailController = require('./controllers/mail'),
     UploadDataController = require('./controllers/upload'),
+    ProblemController = require('./controllers/problem'),
     //    Image = require('./models/image');
     LabController = require('./controllers/labs'),
     OrderController = require('./controllers/orders'),
@@ -65,6 +66,7 @@ module.exports = function(app) {
         reportRoutes = express.Router();
         diagnosisRoutes = express.Router();
         mailRoutes = express.Router();
+        problemRoutes = express.Router();
         uploadDataRoutes = express.Router();
         uploadRoutes=express.Router();
         // Auth Routes
@@ -133,159 +135,169 @@ module.exports = function(app) {
 
     // Visit Routes
     apiRoutes.use('/visits', visitRoutes);
-    visitRoutes.get('/', requireAuth, VisitController.getVisits);
-    visitRoutes.post('/', requireAuth, VisitController.createVisit);
-    visitRoutes.delete('/:visitID', requireAuth, VisitController.deleteVisit);
-    visitRoutes.post('/patient', requireAuth, VisitController.getVisitsByPatient);
-    visitRoutes.post('/filter', requireAuth, VisitController.getVisitsByFilter);
-    visitRoutes.get('/provider/:providerID', requireAuth, VisitController.getVisitsByProvider);
-    visitRoutes.get('/requester/:requesterID', requireAuth, VisitController.getVisitsByRequester);
-    visitRoutes.post('/update', requireAuth, VisitController.UpdateVisit);
+    visitRoutes.get('/', VisitController.getVisits);
+    visitRoutes.post('/',  VisitController.createVisit);
+    visitRoutes.delete('/:visitID',  VisitController.deleteVisit);
+    visitRoutes.post('/patient', VisitController.getVisitsByPatient);
+    visitRoutes.post('/filter',  VisitController.getVisitsByFilter);
+    visitRoutes.get('/provider/:providerID', VisitController.getVisitsByProvider);
+    visitRoutes.get('/requester/:requesterID',  VisitController.getVisitsByRequester);
+    visitRoutes.post('/update', VisitController.UpdateVisit);
 
   // Diagnosis Routes
     apiRoutes.use('/diagnosis', diagnosisRoutes);    
-    diagnosisRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), DiagnosisController.getAllDiagnosis);
-    diagnosisRoutes.post('/', requireAuth, DiagnosisController.Create);
-    diagnosisRoutes.delete('/:diagnosisId', requireAuth, DiagnosisController.Delete);
-    diagnosisRoutes.post('/filter', requireAuth, DiagnosisController.getByFilter);
-    diagnosisRoutes.get('/diagnosisId', requireAuth, DiagnosisController.getById);
-    diagnosisRoutes.post('/update', requireAuth, DiagnosisController.Update);
+    diagnosisRoutes.get('/', DiagnosisController.getAllDiagnosis);
+    diagnosisRoutes.post('/', DiagnosisController.Create);
+    diagnosisRoutes.delete('/:diagnosisId',  DiagnosisController.Delete);
+    diagnosisRoutes.post('/filter', DiagnosisController.getByFilter);
+    diagnosisRoutes.get('/diagnosisId',  DiagnosisController.getById);
+    diagnosisRoutes.post('/update',  DiagnosisController.Update);
     // Mail Routes
     apiRoutes.use('/mail', mailRoutes);    
-    mailRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList),  MailController.getAllMail);
-    mailRoutes.post('/', requireAuth,  MailController.Create);
-    mailRoutes.delete('/:mailId', requireAuth,  MailController.Delete);
-    mailRoutes.post('/filter', requireAuth,  MailController.getByFilter);
-    mailRoutes.get('/mailId', requireAuth, MailController.getById);
-    mailRoutes.post('/update', requireAuth,  MailController.Update);
+    mailRoutes.get('/',  MailController.getAllMail);
+    mailRoutes.post('/',  MailController.Create);
+    mailRoutes.delete('/:mailId',  MailController.Delete);
+    mailRoutes.post('/filter',  MailController.getByFilter);
+    mailRoutes.get('/mailId',  MailController.getById);
+    mailRoutes.post('/update',  MailController.Update);
+
+     // Mail Routes
+     apiRoutes.use('/problem', problemRoutes);    
+     problemRoutes.get('/',  ProblemController.getAllProblem);
+     problemRoutes.post('/',  ProblemController.Create);
+     problemRoutes.delete('/:id',  ProblemController.Delete);
+     problemRoutes.post('/filter',  ProblemController.getByFilter);
+     problemRoutes.get('/id',  ProblemController.getById);
+     problemRoutes.post('/update',   ProblemController.Update);
 
     // uploadDataRoutes
     apiRoutes.use('/uploadData', uploadDataRoutes);    
-    uploadDataRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList),  UploadDataController.getAll);
-    uploadDataRoutes.post('/', requireAuth,  UploadDataController.Create);
-    uploadDataRoutes.delete('/:mailId', requireAuth,  UploadDataController.Delete);
-    uploadDataRoutes.post('/filter', requireAuth,  UploadDataController.getByFilter);
-    uploadDataRoutes.get('/mailId', requireAuth, UploadDataController.getById);
-    uploadDataRoutes.post('/update', requireAuth, UploadDataController.Update);
+    uploadDataRoutes.get('/', UploadDataController.getAll);
+    uploadDataRoutes.post('/',   UploadDataController.Create);
+    uploadDataRoutes.delete('/:id',  UploadDataController.Delete);
+    uploadDataRoutes.post('/filter',  UploadDataController.getByFilter);
+    uploadDataRoutes.get('/id', UploadDataController.getById);
+    uploadDataRoutes.post('/update', UploadDataController.Update);
 
   
     // Data Routes
     apiRoutes.use('/datas', dataRoutes);
-    dataRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), DataController.getDatas);
-    dataRoutes.post('/', requireAuth, DataController.Create);
-    dataRoutes.delete('/:dataID', requireAuth, DataController.Delete);
-    dataRoutes.post('/patient', requireAuth, DataController.getDatasByPatient);
-    dataRoutes.post('/ob', requireAuth, DataController.getDatasByOb);
-    dataRoutes.post('/visit', requireAuth, DataController.getDatasByVisit);
-    dataRoutes.post('/order', requireAuth, DataController.getDatasByOrder);
-    dataRoutes.post('/followup', requireAuth, DataController.getDatasByFollowup);
-    dataRoutes.post('/filter', requireAuth, DataController.getDatasByFilter);
-    dataRoutes.get('/dataId', requireAuth, DataController.getById);
-    dataRoutes.post('/update', requireAuth, DataController.Update);
+    dataRoutes.get('/',   DataController.getDatas);
+    dataRoutes.post('/',  DataController.Create);
+    dataRoutes.delete('/:dataID',  DataController.Delete);
+    dataRoutes.post('/patient',  DataController.getDatasByPatient);
+    dataRoutes.post('/ob',  DataController.getDatasByOb);
+    dataRoutes.post('/visit',  DataController.getDatasByVisit);
+    dataRoutes.post('/order',  DataController.getDatasByOrder);
+    dataRoutes.post('/followup',  DataController.getDatasByFollowup);
+    dataRoutes.post('/filter',  DataController.getDatasByFilter);
+    dataRoutes.get('/dataId',  DataController.getById);
+    dataRoutes.post('/update',  DataController.Update);
 
      //Report Routes
      apiRoutes.use('/reports', reportRoutes);
-     reportRoutes.post('/', requireAuth, ReportController.Create);
-     reportRoutes.delete('/:reportId', requireAuth, ReportController.Delete);
-     reportRoutes.post('/filter', requireAuth, ReportController.getReportsByFilter);
-     reportRoutes.get('/reportId', requireAuth, ReportController.getById);
-     reportRoutes.post('/update', requireAuth, ReportController.Update);
+     reportRoutes.post('/',  ReportController.Create);
+     reportRoutes.delete('/:reportId',  ReportController.Delete);
+     reportRoutes.post('/filter',  ReportController.getReportsByFilter);
+     reportRoutes.get('/reportId',  ReportController.getById);
+     reportRoutes.post('/update',  ReportController.Update);
 
     // followup Routes
     apiRoutes.use('/followups', followupRoutes);
-    followupRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), FollowupController.getFollowups);
-    followupRoutes.post('/', requireAuth, FollowupController.createFollowup);
-    followupRoutes.delete('/:visitID', requireAuth, FollowupController.deleteFollowup);
-    followupRoutes.get('/patient/:patientID', requireAuth, FollowupController.getFollowupsByPatient);
-    followupRoutes.get('/provider/:providerID', requireAuth, FollowupController.getFollowupsByProvider);
-    followupRoutes.post('/date', requireAuth, FollowupController.getFollowupsByDate);
+    followupRoutes.get('/',   FollowupController.getFollowups);
+    followupRoutes.post('/',  FollowupController.createFollowup);
+    followupRoutes.delete('/:visitID',  FollowupController.deleteFollowup);
+    followupRoutes.get('/patient/:patientID',  FollowupController.getFollowupsByPatient);
+    followupRoutes.get('/provider/:providerID',  FollowupController.getFollowupsByProvider);
+    followupRoutes.post('/date',  FollowupController.getFollowupsByDate);
 
-    followupRoutes.get('/requester/:requesterID', requireAuth, FollowupController.getFollowupsByRequester);
-    followupRoutes.post('/update', requireAuth, FollowupController.UpdateFollowup);
+    followupRoutes.get('/requester/:requesterID',  FollowupController.getFollowupsByRequester);
+    followupRoutes.post('/update',  FollowupController.UpdateFollowup);
 
 
     // pathway Routes
     apiRoutes.use('/pathway', pathwayRoutes);
     pathwayRoutes.get('/', PathwayController.getPathway);
-    pathwayRoutes.post('/', requireAuth, PathwayController.createPathway);
-    pathwayRoutes.delete('/:pathwayID', requireAuth, PathwayController.deletePathway);
-    pathwayRoutes.get('/patient/:patientID', requireAuth, PathwayController.getPathwayByPatient);
-    pathwayRoutes.get('/provider/:providerID', requireAuth, PathwayController.getPathwayByProvider);
-    pathwayRoutes.post('/visit', requireAuth, PathwayController.getPathwayByVisit);
+    pathwayRoutes.post('/',  PathwayController.createPathway);
+    pathwayRoutes.delete('/:pathwayID',  PathwayController.deletePathway);
+    pathwayRoutes.get('/patient/:patientID',  PathwayController.getPathwayByPatient);
+    pathwayRoutes.get('/provider/:providerID',  PathwayController.getPathwayByProvider);
+    pathwayRoutes.post('/visit',  PathwayController.getPathwayByVisit);
 
-    pathwayRoutes.get('/requester/:requesterID', requireAuth, PathwayController.getPathwayByRequester);
-    pathwayRoutes.post('/update', requireAuth, PathwayController.UpdatePathway);
+    pathwayRoutes.get('/requester/:requesterID',  PathwayController.getPathwayByRequester);
+    pathwayRoutes.post('/update',  PathwayController.UpdatePathway);
   
     // User Routes
     apiRoutes.use('/users', userRoutes);
-    userRoutes.get('/', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUsers);
-    userRoutes.get('/:User_id', requireAuth,  UserController.getUserById);
-    userRoutes.post('/', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.createUser);
-    // userRoutes.get('/role/:role', requireAuth, AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.getUsersByRole);
-    userRoutes.get('/role/:role', requireAuth,  UserController.getUsersByRole);
-    userRoutes.post('/profile', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUsersByProfile);
+    userRoutes.get('/',  UserController.getUsers);
+    userRoutes.get('/:User_id',  UserController.getUserById);
+    userRoutes.post('/', UserController.createUser);
+    userRoutes.get('/role/:role', UserController.getUsersByRole);
+    userRoutes.post('/profile', UserController.getUsersByProfile);
   
-    userRoutes.get('/email/:email', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getUserByEmail);
+    userRoutes.get('/email/:email', UserController.getUserByEmail);
 
-    userRoutes.post('/getProfilePhoto', requireAuth, AuthenticationController.roleAuthorization(roleList), UserController.getProfilePhoto);
-    userRoutes.post('/update', requireAuth, AuthenticationController.roleAuthorization(roleList), AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.updateUser);
+    userRoutes.post('/getProfilePhoto',  UserController.getProfilePhoto);
+    userRoutes.post('/update',  UserController.updateUser);
 
-    userRoutes.delete('/:User_id', requireAuth, AuthenticationController.roleAuthorization(roleList), AuthenticationController.roleAuthorization(['admin', 'provider', 'market']), UserController.deleteUser);
+    userRoutes.delete('/:User_id', UserController.deleteUser);
 
     // MedicalHistory Routes
     apiRoutes.use('/MedicalHistory', MedicalHistoryRoutes);
-    MedicalHistoryRoutes.get('/:_id', requireAuth, MedicalHistoryController.getById);
-    MedicalHistoryRoutes.post('/patient', requireAuth, MedicalHistoryController.getByPatient);
-    MedicalHistoryRoutes.post('/Update', requireAuth, MedicalHistoryController.Update);
-    MedicalHistoryRoutes.get('/', requireAuth, MedicalHistoryController.get);
-    MedicalHistoryRoutes.post('/', requireAuth, MedicalHistoryController.create);
-    MedicalHistoryRoutes.delete('/:ID', requireAuth, MedicalHistoryController.delete);
-    MedicalHistoryRoutes.post('/photo', requireAuth, MedicalHistoryController.upload);
-    MedicalHistoryRoutes.delete('/photo/:ID', requireAuth, MedicalHistoryController.deletePhoto);
+    MedicalHistoryRoutes.get('/:_id',  MedicalHistoryController.getById);
+    MedicalHistoryRoutes.post('/patient',  MedicalHistoryController.getByPatient);
+    MedicalHistoryRoutes.post('/Update',  MedicalHistoryController.Update);
+    MedicalHistoryRoutes.get('/',  MedicalHistoryController.get);
+    MedicalHistoryRoutes.post('/',  MedicalHistoryController.create);
+    MedicalHistoryRoutes.delete('/:ID',  MedicalHistoryController.delete);
+    MedicalHistoryRoutes.post('/photo',  MedicalHistoryController.upload);
+    MedicalHistoryRoutes.delete('/photo/:ID',  MedicalHistoryController.deletePhoto);
 
 
     // note Routes
     apiRoutes.use('/note', noteRoutes);
-    noteRoutes.get('/:noteId', requireAuth, NoteController.getById);
-    noteRoutes.post('/patient', requireAuth, NoteController.getByPatient);
-    noteRoutes.post('/visit', requireAuth, NoteController.getByVisit);
-    noteRoutes.post('/Update', requireAuth, NoteController.Update);
-    noteRoutes.get('/', requireAuth, NoteController.get);
-    noteRoutes.post('/', requireAuth, NoteController.create);
-    noteRoutes.delete('/:noteId', requireAuth, NoteController.delete);
-    noteRoutes.post('/photo', requireAuth, NoteController.upload);
-    noteRoutes.delete('/photo/:noteId', requireAuth, NoteController.deletePhoto);
+    noteRoutes.get('/:noteId',  NoteController.getById);
+    noteRoutes.post('/patient',  NoteController.getByPatient);
+    noteRoutes.post('/visit',  NoteController.getByVisit);
+    noteRoutes.post('/Update',  NoteController.Update);
+    noteRoutes.get('/',  NoteController.get);
+    noteRoutes.post('/',  NoteController.create);
+    noteRoutes.delete('/:noteId',  NoteController.delete);
+    noteRoutes.post('/photo',  NoteController.upload);
+    noteRoutes.delete('/photo/:noteId',  NoteController.deletePhoto);
 
     // note Routes
     apiRoutes.use('/screening', screeningRoutes);
-    screeningRoutes.get('/:screeningId', requireAuth, ScreeningController.getById);
-    screeningRoutes.post('/patient', requireAuth, ScreeningController.getByPatient);
-    screeningRoutes.post('/visit', requireAuth, ScreeningController.getByVisit);
-    screeningRoutes.post('/Update', requireAuth, ScreeningController.Update);
-    screeningRoutes.get('/', requireAuth, ScreeningController.get);
-    screeningRoutes.post('/', requireAuth, ScreeningController.create);
-    screeningRoutes.delete('/:screeningId', requireAuth, ScreeningController.delete);
-    screeningRoutes.post('/photo', requireAuth, ScreeningController.upload);
-    screeningRoutes.delete('/photo/:screeningId', requireAuth, ScreeningController.deletePhoto);
+    screeningRoutes.get('/:screeningId',  ScreeningController.getById);
+    screeningRoutes.post('/patient',  ScreeningController.getByPatient);
+    screeningRoutes.post('/visit',  ScreeningController.getByVisit);
+    screeningRoutes.post('/Update',  ScreeningController.Update);
+    screeningRoutes.get('/',  ScreeningController.get);
+    screeningRoutes.post('/',  ScreeningController.create);
+    screeningRoutes.delete('/:screeningId',  ScreeningController.delete);
+    screeningRoutes.post('/photo',  ScreeningController.upload);
+    screeningRoutes.delete('/photo/:screeningId', ScreeningController.deletePhoto);
 
     // Med Routes
     apiRoutes.use('/meds', MedRoutes);
-    MedRoutes.get('/:medId', requireAuth, MedController.getById);
-    MedRoutes.post('/patient', requireAuth, MedController.getByPatient);
-    MedRoutes.post('/Update', requireAuth, MedController.Update);
-    MedRoutes.get('/', requireAuth, MedController.get);
-    MedRoutes.post('/', requireAuth, MedController.create);
-    MedRoutes.delete('/:medId', requireAuth, MedController.delete);
+    MedRoutes.get('/:medId',  MedController.getById);
+    MedRoutes.post('/patient',  MedController.getByPatient);
+    MedRoutes.post('/Update',  MedController.Update);
+    MedRoutes.get('/',  MedController.get);
+    MedRoutes.post('/filter',  MedController.getByFilter);
+    MedRoutes.post('/',  MedController.create);
+    MedRoutes.delete('/:medId',  MedController.delete);
        // order Routes
        apiRoutes.use('/orders', orderRoutes);
-       orderRoutes.get('/:orderId', requireAuth, OrderController.getById);
-       orderRoutes.post('/patient', requireAuth, OrderController.getByPatient);
-       orderRoutes.post('/visit', requireAuth, OrderController.getByVisit);
-       orderRoutes.post('/type', requireAuth, OrderController.getByType);
-       orderRoutes.post('/Update', requireAuth, OrderController.Update);
-       orderRoutes.get('/', requireAuth, OrderController.get);
-       orderRoutes.post('/', requireAuth, OrderController.create);
-       orderRoutes.delete('/:orderId', requireAuth, OrderController.delete);
+       orderRoutes.get('/:orderId',  OrderController.getById);
+       orderRoutes.post('/patient',  OrderController.getByPatient);
+       orderRoutes.post('/visit',  OrderController.getByVisit);
+       orderRoutes.post('/type',  OrderController.getByType);
+       orderRoutes.post('/Update',  OrderController.Update);
+       orderRoutes.get('/',  OrderController.get);
+       orderRoutes.post('/',  OrderController.create);
+       orderRoutes.delete('/:orderId',  OrderController.delete);
+       orderRoutes.post('/filter',  OrderController.getByFilter);
 
     // Category Routes
     apiRoutes.use('/categories', CategoryRoutes);
@@ -301,33 +313,35 @@ module.exports = function(app) {
     CategoryRoutes.get('/formType/:formType', CategoryController.getByFormType);
     CategoryRoutes.post('/fields', CategoryController.getByFields);
     CategoryRoutes.post('/orderMaster', CategoryController.getOrderMasters);
-    CategoryRoutes.delete('/:categoryId', requireAuth, CategoryController.delete);
+    CategoryRoutes.delete('/:categoryId',  CategoryController.delete);
 
     // Request Routes
     apiRoutes.use('/Requests', RequestRoutes);
-    RequestRoutes.post('/', requireAuth, RequestController.getRequestById);
+    RequestRoutes.post('/',  RequestController.getRequestById);
     RequestRoutes.get('/', RequestController.getRequests);
     RequestRoutes.get('/:title', RequestController.getRequestsByPatient);
 
-    RequestRoutes.post('/', requireAuth, RequestController.createRequest);
-    RequestRoutes.delete('/:requestID', requireAuth, RequestController.deleteRequest);
+    RequestRoutes.post('/',  RequestController.createRequest);
+    RequestRoutes.delete('/:requestID',  RequestController.deleteRequest);
 
     //images Routes
     apiRoutes.use('/images', imageRoutes);
-    imageRoutes.post('/', requireAuth, ImageController.uploadImage);
-    imageRoutes.post('/patient', requireAuth, ImageController.getByPatient);
-    imageRoutes.post('/getImage', requireAuth, ImageController.getImage);
-    imageRoutes.delete('/:ID', requireAuth, ImageController.delete);
-
+   // imageRoutes.post('/',  ImageController.uploadImage);
+    imageRoutes.post('/patient',  ImageController.getByPatient);
+    imageRoutes.post('/getImage',  ImageController.getImage);
+    imageRoutes.delete('/:ID',  ImageController.delete);
+    imageRoutes.post('/filter', ImageController.getByFilter);
+    imageRoutes.post('/',   ImageController.create);
     //labs Routes
     apiRoutes.use('/labs', labRoutes);
-    labRoutes.post('/upload', requireAuth, LabController.uploadLab);
-    labRoutes.post('/patient', requireAuth, LabController.getByPatient);
-    labRoutes.post('/getLab', requireAuth, LabController.getLab);
-    labRoutes.delete('/:ID', requireAuth, LabController.delete);
-    labRoutes.post('/Update', requireAuth, LabController.Update);
-    labRoutes.post('/', requireAuth, LabController.create);
-    labRoutes.post('/visit', requireAuth, LabController.getByVisit);
+   // labRoutes.post('/upload',  LabController.uploadLab);
+    labRoutes.post('/patient',  LabController.getByPatient);
+    labRoutes.post('/getLab',  LabController.getLab);
+    labRoutes.delete('/:ID',  LabController.delete);
+    labRoutes.post('/Update',  LabController.Update);
+    labRoutes.post('/',  LabController.create);
+    labRoutes.post('/visit',  LabController.getByVisit);
+    labRoutes.post('/filter',  LabController.getByFilter);
     // Set up routes
 
     app.use('/api', apiRoutes);
@@ -340,29 +354,22 @@ module.exports = function(app) {
              cb(null, req.body.name + '-' + Date.now())
          }
      })
-
      var upload = multer({ storage: storage });*/
     /*
     app.post('/uploads', (req, res, next) => {
-
-
         var newImage = {
             filename: req.body.image.name,
             originalName: req.body.image.about,
             desc: req.body.image.about,
             patientID: req.body.patientID,
         };
-
         Image.create(newImage, function(err, data) {
-
             if (err) {
                 res.send(err);
-
             }
             console.log(data)
             var loadedfile = Buffer.from(req.body.image.profilePic, 'base64');
             // console.log(loadedfile)
-
             var path = '././uploads/' + data._id + '.jpg'
                 // console.log(path)
             fs.writeFile(path, req.body.profilePic, function(err) {
@@ -373,10 +380,7 @@ module.exports = function(app) {
             });
             res.json(data);
         });
-
-
     });
-
     app.get('/uploads', (req, res, next) => {
         // use lean() to get a plain JS object
         // remove the version key from the response
@@ -384,7 +388,6 @@ module.exports = function(app) {
             if (err) {
                 res.sendStatus(400);
             }
-
             // Manually set the correct URL to each image
             for (let i = 0; i < images.length; i++) {
                 var img = images[i];

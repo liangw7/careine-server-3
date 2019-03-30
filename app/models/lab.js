@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
 
-var ImageSchema = new mongoose.Schema({
+var LabSchema = new mongoose.Schema({
 
     desc: {
         type: String
@@ -26,10 +26,13 @@ var ImageSchema = new mongoose.Schema({
     providerId: {
         type: String
     },
-    content:{
-        type: Object
+    obID:{
+        type: String
     },
     displayName: {
+        type: String
+    },
+    uploaded:{
         type: String
     },
     status: {
@@ -40,6 +43,6 @@ var ImageSchema = new mongoose.Schema({
     timestamps: true
 });
 
-module.exports = mongoose.model('Lab', ImageSchema);
+module.exports = mongoose.model('Lab', LabSchema);
 
 //https://medium.com/@alvenw/how-to-store-images-to-mongodb-with-node-js-fb3905c37e6d

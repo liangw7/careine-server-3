@@ -129,9 +129,9 @@ exports.getDatasByOrder = function(req, res, next) {
 
 exports.getDatasByFilter = function(req, res, next) {
 
-    console.log ('filter',req.body.filter)
+    console.log ('filter',req.body)
  
-    Data.find( req.body.filter, function(err, data) {
+    Data.find( req.body, function(err, data) {
         if (err) {
             res.send(err);
             console.log(err);

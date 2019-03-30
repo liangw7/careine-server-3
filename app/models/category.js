@@ -38,6 +38,9 @@ var categorySchema = new mongoose.Schema({
     profileType: {
         type: String
     },
+    problemType: {
+        type: String
+    },
     orderType: {
         type: String
     },

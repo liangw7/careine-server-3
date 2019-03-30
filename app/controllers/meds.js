@@ -28,7 +28,31 @@ exports.getById = function(req, res, next) {
     });
 
 }
+exports.getByFilter = function(req, res, next) {
 
+    
+ 
+    Med.find( req.body, function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        console.log ('data', data)
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
+}
 exports.getByPatient = function(req, res, next) {
 
     Med.find(req.body, function(err, data) {

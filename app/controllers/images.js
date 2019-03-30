@@ -33,7 +33,31 @@ exports.uploadImage = function(req, res, next) {
         res.json(data);
     });
 }
+exports.getByFilter = function(req, res, next) {
 
+   
+ 
+    Image.find( req.body, function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        console.log ('data', data)
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
+}
 
 exports.getByPatient = function(req, res, next) {
     console.log('patientid', req.body.patientID)
@@ -84,3 +108,19 @@ exports.delete = function(req, res, next) {
     });
 
 }
+exports.create = function(req, res, next) {
+    
+    Image.create((req.body),
+        function(err, lab) {
+
+            if (err) {
+                res.send(err);
+            }
+
+            res.json(lab);
+
+
+
+        });
+
+    }

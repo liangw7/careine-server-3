@@ -14,10 +14,10 @@ var medSchema = new mongoose.Schema({
         type: String
 
     },
-    visitId: {
+    visitID: {
         type: String
     },
-    providerId: {
+    providerID: {
         type: String
     },
     content:{
@@ -26,7 +26,13 @@ var medSchema = new mongoose.Schema({
     displayName: {
         type: String
     },
+    name:{
+        type: String
+    },
     status: {
+        type: String
+    },
+    medicationID:{
         type: String
     }
 

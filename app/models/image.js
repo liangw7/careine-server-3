@@ -17,16 +17,31 @@ var ImageSchema = new mongoose.Schema({
     patientID: {
         type: String
     },
-    requestID: {
+    visitId: {
         type: String
     },
-    //  created: { type: Date, default: Date.now },
-    img: { data: Buffer, contentType: String }
+    orderId: {
+        type: String
+    },
+    providerId: {
+        type: String
+    },
+    obSetID:{
+        type: String
+    },
+    displayName: {
+        type: String
+    },
+    uploaded:{
+        type: String
+    },
+    status: {
+        type: String
+    }
 
 }, {
     timestamps: true
 });
-
 module.exports = mongoose.model('Image', ImageSchema);
 
 //https://medium.com/@alvenw/how-to-store-images-to-mongodb-with-node-js-fb3905c37e6d

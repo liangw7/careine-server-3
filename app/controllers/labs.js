@@ -2,37 +2,32 @@ var Lab = require('../models/lab');
 var mongoose = require('mongoose');
 var fs = require('fs');
 
-exports.uploadLab = function(req, res, next) {
-    var newLab = req.body;
-    /*{
-        name: req.body.lab.name,
-        about: req.body.lab.about,
-        desc: req.body.lab.desc,
-        patientID: req.body.patientID,
-    };*/
 
-    Lab.create(newLab, function(err, data) {
+exports.getByFilter = function(req, res, next) {
 
+
+ 
+    Lab.find( req.body, function(err, data) {
         if (err) {
             res.send(err);
+            console.log(err);
 
         }
-        console.log(data)
-        var loadedfile = Buffer.from(req.body.profilePic, 'base64');
-        // console.log(loadedfile)
-
-        var path = '././labs/' + data._id + '.jpg'
-            // console.log(path)
-        fs.writeFile(path, req.body.profilePic, function(err) {
-            if (err) {
-                return console.log(err);
-            }
-            console.log("File saved successfully!");
-        });
+        console.log ('data', data)
         res.json(data);
-    });
-}
 
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    });
+
+}
 
 exports.getByPatient = function(req, res, next) {
     console.log('patientid', req.body.patientID)
