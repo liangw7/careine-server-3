@@ -7,21 +7,8 @@ var medSchema = new mongoose.Schema({
     patientID: {
         type: String
     },
-    type: {
-        type: String
-    },
-    status: {
-        type: String
-
-    },
-    visitID: {
-        type: String
-    },
     providerID: {
         type: String
-    },
-    content:{
-        type: Object
     },
     displayName: {
         type: String
@@ -29,11 +16,12 @@ var medSchema = new mongoose.Schema({
     name:{
         type: String
     },
-    status: {
+  
+    medicationItemID:{
         type: String
     },
-    medicationID:{
-        type: String
+    infor: {
+        type: Object
     }
 
 }, {

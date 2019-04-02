@@ -10,22 +10,23 @@ var orderSchema = new mongoose.Schema({
     type: {
         type: String
     },
-    status: {
-        type: String
+    infor: {
+        type: Object
 
     },
-   
     visitId: {
         type: String
     },
-    userID: {
+    
+    orderItemID:{
         type: String
     },
-    content:{
-        type: Object
+    
+    providerID:{
+        type: String
     },
-    service:{
-        type: Object
+    status:{
+        type: String
     }
 
 }, {

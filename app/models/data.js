@@ -26,6 +26,9 @@ var dataSchema = new mongoose.Schema({
     problemID:{
         type: String
     },
+    familyMember: {
+        type: String
+    },
     medicationID:{
         type: String
     },

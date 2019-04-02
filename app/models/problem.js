@@ -9,23 +9,20 @@ var problemSchema = new mongoose.Schema({
     patientEmail:{
         type: String
     },
-    problemID: {
+    problemItemID: {
         type: String
-    },
-    role:{
-        type:String  //medical , surgical or familyor, social etc.
-    },
-    name: {
-        type: String
-    },
-    status:{
-        type: String //active or resolved
     },
     familyMember:{
         type: String 
     },
-    description:{
+    role:{
         type: String
+    },
+    infor:{
+        type:Object 
+    },
+    name: {
+        type:String
     }
 }, {
     timestamps: true
