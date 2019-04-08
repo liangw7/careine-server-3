@@ -50,7 +50,8 @@ var UserSchema = new mongoose.Schema({
     problems:[],
     userID: {
         type: String
-    }
+    },
+    patientLists:[]
 }, {
     timestamps: true
 });

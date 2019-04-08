@@ -234,7 +234,7 @@ module.exports = function(app) {
     userRoutes.post('/', UserController.createUser);
     userRoutes.get('/role/:role', UserController.getUsersByRole);
     userRoutes.post('/profile', UserController.getUsersByProfile);
-  
+    userRoutes.post('/filter', UserController.getByFilter);
     userRoutes.get('/email/:email', UserController.getUserByEmail);
 
     userRoutes.post('/getProfilePhoto',  UserController.getProfilePhoto);

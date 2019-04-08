@@ -14,7 +14,7 @@ var orderSchema = new mongoose.Schema({
         type: Object
 
     },
-    visitId: {
+    visitID: {
         type: String
     },
     
