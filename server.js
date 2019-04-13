@@ -18,7 +18,8 @@ var Grid = require('gridfs-stream');
 Grid.mongo = mongoose.mongo;
 var gfs = Grid(conn.db);
 //var ImageController = require('controllers/images');
-app.listen(process.env.PORT || 8080);
+const server = app.listen(process.env.PORT || 8080);
+server.keepAliveTimeout = 60000 * 2;
 console.log("App listening on port 8080");
 
 //app.use(bodyParser.urlencoded({ extended: false })); // Parses urlencoded bodies

@@ -33,7 +33,7 @@ var requireAuth = passport.authenticate('jwt', { session: false }),
 
 module.exports = function(app) {
 
-    const DIR = './uploads';
+    const DIR = '././uploads';
  
     let storage = multer.diskStorage({
         destination: (req, file, cb) => {
@@ -90,6 +90,7 @@ module.exports = function(app) {
             var filename = req.params.filename,
                
                 root = DIR+'/';
+                console.log ('dir', DIR)
         
             var options = {
                 root: root,
