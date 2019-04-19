@@ -14,6 +14,7 @@ var AuthenticationController = require('./controllers/authentication'),
     DataController = require('./controllers/data'),
     ReportController = require('./controllers/report'),
     MailController = require('./controllers/mail'),
+    OrderItemController = require('./controllers/orderItem'),
     UploadDataController = require('./controllers/upload'),
     ProblemController = require('./controllers/problem'),
     //    Image = require('./models/image');
@@ -66,6 +67,7 @@ module.exports = function(app) {
         reportRoutes = express.Router();
         diagnosisRoutes = express.Router();
         mailRoutes = express.Router();
+        orderItemRoutes = express.Router();
         problemRoutes = express.Router();
         uploadDataRoutes = express.Router();
         uploadRoutes=express.Router();
@@ -162,7 +164,7 @@ module.exports = function(app) {
     mailRoutes.get('/mailId',  MailController.getById);
     mailRoutes.post('/update',  MailController.Update);
 
-     // Mail Routes
+     // Problem Routes
      apiRoutes.use('/problem', problemRoutes);    
      problemRoutes.get('/',  ProblemController.getAllProblem);
      problemRoutes.post('/',  ProblemController.Create);
@@ -170,6 +172,15 @@ module.exports = function(app) {
      problemRoutes.post('/filter',  ProblemController.getByFilter);
      problemRoutes.get('/id',  ProblemController.getById);
      problemRoutes.post('/update',   ProblemController.Update);
+
+          //OrderItem Routes
+          apiRoutes.use('/orderItem', orderItemRoutes);    
+          orderItemRoutes.get('/',  OrderItemController.getAll);
+          orderItemRoutes.post('/',  OrderItemController.Create);
+          orderItemRoutes.delete('/:id',  OrderItemController.Delete);
+          orderItemRoutes.post('/filter',  OrderItemController.getByFilter);
+          orderItemRoutes.get('/id',  OrderItemController.getById);
+          orderItemRoutes.post('/update',   OrderItemController.Update);
 
     // uploadDataRoutes
     apiRoutes.use('/uploadData', uploadDataRoutes);    
