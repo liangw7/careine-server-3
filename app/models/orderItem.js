@@ -44,6 +44,15 @@ var orderItemSchema = new mongoose.Schema({
     },
     coOrders:{
         type:[]
+    },
+    conflictingOrders:{
+        type:[]
+    },
+    conflictingProblems:{
+        type:[]
+    },
+    educations:{
+        type:[]
     }
 }, {
     timestamps: true

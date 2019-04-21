@@ -14,6 +14,9 @@ var categorySchema = new mongoose.Schema({
     field: {
         type: String
     },
+    mappingOb: {
+        type: Object
+    },
     formType: {
         type: String
     },
