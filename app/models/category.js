@@ -17,6 +17,9 @@ var categorySchema = new mongoose.Schema({
     mappingOb: {
         type: Object
     },
+    mappingLab: {
+        type: Object
+    },
     formType: {
         type: String
     },
@@ -63,6 +66,12 @@ var categorySchema = new mongoose.Schema({
         type: String
     },
     allowDuplicate: {
+        type: String
+    },
+    problemSet: {
+        type: String
+    },
+    medicationSet: {
         type: String
     },
     options: [],

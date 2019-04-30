@@ -1,14 +1,14 @@
-var OrderItem = require('../models/orderItem');
+var ImageItem = require('../models/imageItem');
 
 exports.getAll = function(req, res, next) {
 
-    OrderItem.find(function(err, OrderItem) {
+    ImageItem.find(function(err, ImageItem) {
 
         if (err) {
             res.send(err);
         }
 
-        res.json(OrderItem);
+        res.json(ImageItem);
 
     });
 
@@ -17,15 +17,15 @@ exports.getAll = function(req, res, next) {
 
 exports.getById = function(req, res, next) {
 
-    console.log('OrderItemId', req.params.orderItemId)
+    console.log('ImageItemId', req.params.imageItemId)
 
-    OrderItem.findById({ _id: req.params.orderItemId}, function(err, OrderItem) {
+    ImageItem.findById({ _id: req.params.imageItemId }, function(err, ImageItem) {
 
         if (err) {
             res.send(err);
         }
 
-        res.json(OrderItem);
+        res.json(ImageItem);
 
     });
 
@@ -36,7 +36,7 @@ exports.getByFilter = function(req, res, next) {
 
     
  
-    OrderItem.find( req.body, function(err, data) {
+    ImageItem.find( req.body, function(err, data) {
         if (err) {
             res.send(err);
             console.log(err);
@@ -62,7 +62,7 @@ exports.getByFilter = function(req, res, next) {
 exports.Update = function(req, res, next) {
 
 
-    OrderItem.findByIdAndUpdate(req.body._id, { $set: req.body }, { new: true },
+    ImageItem.findByIdAndUpdate(req.body._id, { $set: req.body }, { new: true },
         function(err, request) {
             if (err) {
                 res.send(err);
@@ -74,14 +74,14 @@ exports.Update = function(req, res, next) {
 
 exports.Create = function(req, res, next) {
 
-    OrderItem.create((req.body),
-        function(err, OrderItem) {
+    ImageItem.create((req.body),
+        function(err, ImageItem) {
 
             if (err) {
                 res.send(err);
             }
 
-            res.json(OrderItem);
+            res.json(ImageItem);
 
 
 
@@ -91,10 +91,10 @@ exports.Create = function(req, res, next) {
 
 exports.Delete = function(req, res, next) {
 
-    OrderItem.remove({
-        _id: req.params.OrderItemId
-    }, function(err, OrderItem) {
-        res.json(OrderItem);
+    ImageItem.remove({
+        _id: req.params.id
+    }, function(err, ImageItem) {
+        res.json(ImageItem);
     });
 
 }

@@ -15,6 +15,8 @@ var AuthenticationController = require('./controllers/authentication'),
     ReportController = require('./controllers/report'),
     MailController = require('./controllers/mail'),
     OrderItemController = require('./controllers/orderItem'),
+    LabItemController = require('./controllers/labItem'),
+    ImageItemController = require('./controllers/imageItem'),
     UploadDataController = require('./controllers/upload'),
     ProblemController = require('./controllers/problem'),
     //    Image = require('./models/image');
@@ -68,6 +70,8 @@ module.exports = function(app) {
         diagnosisRoutes = express.Router();
         mailRoutes = express.Router();
         orderItemRoutes = express.Router();
+        labItemRoutes = express.Router();
+        imageItemRoutes = express.Router();
         problemRoutes = express.Router();
         uploadDataRoutes = express.Router();
         uploadRoutes=express.Router();
@@ -179,8 +183,24 @@ module.exports = function(app) {
           orderItemRoutes.post('/',  OrderItemController.Create);
           orderItemRoutes.delete('/:id',  OrderItemController.Delete);
           orderItemRoutes.post('/filter',  OrderItemController.getByFilter);
-          orderItemRoutes.get('/id',  OrderItemController.getById);
+          orderItemRoutes.get('/:orderItemId',  OrderItemController.getById);
           orderItemRoutes.post('/update',   OrderItemController.Update);
+            //LabItem Routes
+            apiRoutes.use('/labItem', labItemRoutes);    
+            labItemRoutes.get('/',  LabItemController.getAll);
+            labItemRoutes.post('/',  LabItemController.Create);
+            labItemRoutes.delete('/:id',  LabItemController.Delete);
+            labItemRoutes.post('/filter',  LabItemController.getByFilter);
+            labItemRoutes.get('/:labItemId',  LabItemController.getById);
+            labItemRoutes.post('/update',   LabItemController.Update);
+              //ImageItem Routes
+          apiRoutes.use('/imageItem', imageItemRoutes);    
+          imageItemRoutes.get('/',  ImageItemController.getAll);
+          imageItemRoutes.post('/',  ImageItemController.Create);
+          imageItemRoutes.delete('/:id',  ImageItemController.Delete);
+          imageItemRoutes.post('/filter',  ImageItemController.getByFilter);
+          imageItemRoutes.get('/id:imageItemId',  ImageItemController.getById);
+          imageItemRoutes.post('/update',   ImageItemController.Update);
 
     // uploadDataRoutes
     apiRoutes.use('/uploadData', uploadDataRoutes);    
@@ -247,6 +267,7 @@ module.exports = function(app) {
     userRoutes.get('/role/:role', UserController.getUsersByRole);
     userRoutes.post('/profile', UserController.getUsersByProfile);
     userRoutes.post('/filter', UserController.getByFilter);
+    userRoutes.post('/count', UserController.getCount);
     userRoutes.get('/email/:email', UserController.getUserByEmail);
 
     userRoutes.post('/getProfilePhoto',  UserController.getProfilePhoto);

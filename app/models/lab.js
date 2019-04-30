@@ -17,16 +17,19 @@ var LabSchema = new mongoose.Schema({
     patientID: {
         type: String
     },
-    visitId: {
+    visitID: {
         type: String
     },
-    orderId: {
+    orderID: {
         type: String
     },
-    providerId: {
+    providerID: {
         type: String
     },
     obID:{
+        type: String
+    },
+    labItemID:{
         type: String
     },
     displayName: {

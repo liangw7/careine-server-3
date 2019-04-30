@@ -77,7 +77,31 @@ exports.getByFilter = function(req, res, next) {
     });
 
 }
+exports.getCount= function(req, res, next) {
 
+    User.count(req.body,
+        function(err, data) {
+            if (err) {
+                res.send(err);
+
+            }
+
+
+            res.json(data);
+            var _send = res.send;
+            var sent = false;
+            res.send = function(data) {
+                if (sent) return;
+                _send.bind(res)(data);
+                sent = true;
+            };
+            next();
+
+        });
+
+
+
+}
 
 exports.getUsersByRole = function(req, res, next) {
 
