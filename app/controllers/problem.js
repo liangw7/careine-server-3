@@ -17,7 +17,7 @@ exports.getAllProblem = function(req, res, next) {
 
 exports.getById = function(req, res, next) {
 
-    console.log('ProblemId', req.params.id)
+ //   console.log('ProblemId', req.params.id)
 
     Problem.findById({ _id: req.params.id }, function(err, Problem) {
 
@@ -34,7 +34,7 @@ exports.getById = function(req, res, next) {
 
 exports.getByFilter = function(req, res, next) {
 
-    console.log ('filter',req.body.filter)
+   // console.log ('filter',req.body.filter)
  
     Problem.find( req.body.filter, function(err, data) {
         if (err) {
@@ -42,7 +42,7 @@ exports.getByFilter = function(req, res, next) {
             console.log(err);
 
         }
-        console.log ('data', data)
+    //    console.log ('data', data)
         res.json(data);
 
         var _send = res.send;

@@ -96,7 +96,7 @@ module.exports = function(app) {
             var filename = req.params.filename,
                
                 root = DIR+'/';
-                console.log ('dir', DIR)
+             //   console.log ('dir', DIR)
         
             var options = {
                 root: root,
@@ -111,20 +111,20 @@ module.exports = function(app) {
                 if (err) {
                     next(err);
                 } else {
-                    console.log('Sent:', filename);
+            //        console.log('Sent:', filename);
                 }
             });
         })
 
         uploadRoutes.post('/',upload.single('photo'), function (req, res) {
             if (!req.file) {
-                console.log("No file received");
+              //  console.log("No file received");
                 return res.send({
                     success: false
                 });
             
                 } else {
-                console.log('file received');
+              //  console.log('file received');
                 return res.send({
                     success: true
                 })
@@ -150,7 +150,7 @@ module.exports = function(app) {
     visitRoutes.get('/provider/:providerID', VisitController.getVisitsByProvider);
     visitRoutes.get('/requester/:requesterID',  VisitController.getVisitsByRequester);
     visitRoutes.post('/update', VisitController.UpdateVisit);
-
+    visitRoutes.post('/monthlyVisits', VisitController.getMonthlyVisits);
   // Diagnosis Routes
     apiRoutes.use('/diagnosis', diagnosisRoutes);    
     diagnosisRoutes.get('/', DiagnosisController.getAllDiagnosis);
@@ -225,7 +225,9 @@ module.exports = function(app) {
     dataRoutes.post('/filter',  DataController.getDatasByFilter);
     dataRoutes.get('/dataId',  DataController.getById);
     dataRoutes.post('/update',  DataController.Update);
-
+    dataRoutes.post('/getPatientsByFilter',  DataController.getPatientsByFilter);
+    dataRoutes.post('/getReport',  DataController.getReport);
+    dataRoutes.post('/getMultiReport',  DataController.getMultiReport);
      //Report Routes
      apiRoutes.use('/reports', reportRoutes);
      reportRoutes.post('/',  ReportController.Create);
@@ -269,7 +271,8 @@ module.exports = function(app) {
     userRoutes.post('/filter', UserController.getByFilter);
     userRoutes.post('/count', UserController.getCount);
     userRoutes.get('/email/:email', UserController.getUserByEmail);
-
+    userRoutes.post('/dailyPatients', UserController.getDailyPatients);
+    userRoutes.post('/monthlyPatients', UserController.getMonthlyPatients);
     userRoutes.post('/getProfilePhoto',  UserController.getProfilePhoto);
     userRoutes.post('/update',  UserController.updateUser);
 
@@ -346,6 +349,8 @@ module.exports = function(app) {
     CategoryRoutes.get('/formType/:formType', CategoryController.getByFormType);
     CategoryRoutes.post('/fields', CategoryController.getByFields);
     CategoryRoutes.post('/orderMaster', CategoryController.getOrderMasters);
+    CategoryRoutes.post('/getForm', CategoryController.getForm);
+    CategoryRoutes.post('/getSummary', CategoryController.getSummary);
     CategoryRoutes.delete('/:categoryId',  CategoryController.delete);
 
     // Request Routes

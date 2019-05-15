@@ -102,6 +102,75 @@ exports.getCount= function(req, res, next) {
 
 
 }
+exports.getDailyPatients= function(req, res, next) {
+
+        User.aggregate(
+            [   { $match: {role: 'patient'}},
+                {$group : { _id : { year : { $year : '$createdAt' }, month : { $month : '$createdAt' }, day : {$dayOfMonth : '$createdAt'} }, count : { $sum : 1 }       }}
+  
+           
+         //   "createdAt": { $gte: new Date((new Date().getTime() - (req.body.days * 24 * 60 * 60 * 1000))) }
+         //       } }
+            ],
+           // cursor({ batchSize: 1000 }),
+            function(err, result)	{
+				if(err)	{
+					console.log(err);
+				}
+				else	{
+					res.json(result);
+				}
+			});
+           
+
+}
+
+exports.getMonthlyPatients= function(req, res, next) {
+
+    User.aggregate(
+        [   { $match: {role: 'patient'}},
+            {$group : { _id : { year : { $year : '$createdAt' }, month : { $month : '$createdAt' } }, count : { $sum : 1 }}},
+            {$sort: {'_id.year':1, '_id.month':1}}
+       
+     //   "createdAt": { $gte: new Date((new Date().getTime() - (req.body.months * 24 * 60 * 60 * 1000))) }
+     //       } }
+        ],
+       // cursor({ batchSize: 1000 }),
+        function(err, result)	{
+            if(err)	{
+                console.log(err);
+            }
+            else	{
+                res.json(result);
+            }
+        });
+       
+
+}
+
+exports.getPatientsByPlace= function(req, res, next) {
+
+    User.aggregate(
+        [   { $match: {role: 'patient'}},
+            {$group : { _id : { year : { $year : '$createdAt' }, month : { $month : '$createdAt' } }, count : { $sum : 1 }}},
+            {$sort: {'_id.year':1, '_id.month':1}}
+       
+     //   "createdAt": { $gte: new Date((new Date().getTime() - (req.body.months * 24 * 60 * 60 * 1000))) }
+     //       } }
+        ],
+       // cursor({ batchSize: 1000 }),
+        function(err, result)	{
+            if(err)	{
+                console.log(err);
+            }
+            else	{
+                res.json(result);
+            }
+        });
+       
+
+}
+
 
 exports.getUsersByRole = function(req, res, next) {
 

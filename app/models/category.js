@@ -74,11 +74,14 @@ var categorySchema = new mongoose.Schema({
     medicationSet: {
         type: String
     },
+    formula: {
+        type: String
+    },
     options: [],
     obs: [],
     obSets: [],
-    activities: [],
-    profiles: [],
+  //  activities: [],
+  //  profiles: [],
     calculationItems: [],
 
     problemID:{

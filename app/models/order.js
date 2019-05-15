@@ -27,6 +27,12 @@ var orderSchema = new mongoose.Schema({
     },
     status:{
         type: String
+    },
+    value:{
+        type:Number
+    },
+    UOM:{
+        type: String
     }
 
 }, {

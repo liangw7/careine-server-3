@@ -24,7 +24,7 @@ exports.getReportsByFilter = function(req, res, next) {
             console.log(err);
 
         }
-        console.log ('Report', Report)
+     //   console.log ('Report', Report)
         res.json(Report);
 
         var _send = res.send;
@@ -57,7 +57,7 @@ exports.getById = function(req, res, next) {
 }
 
 exports.Create = function(req, res, next) {
-    console.log('request', req.body)
+    //console.log('request', req.body)
     Report.create(req.body, function(err, Report) {
 
         if (err) {
