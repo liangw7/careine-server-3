@@ -5,15 +5,13 @@ var labItemSchema = new mongoose.Schema({
     name: {
         type: String
     },
+    label:{
+        type: Object
+    },
     internalName: {
         type: String
     },
-   from:{
-       type: Number
-   },
-   to:{
-       type: Number
-   },
+   options:[],
     uom: {
         type: String
     },

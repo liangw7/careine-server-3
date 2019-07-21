@@ -12,8 +12,11 @@ var problemSchema = new mongoose.Schema({
     problemItemID: {
         type: String
     },
+   familyMembers:{
+       type:[]
+   },
     familyMember:{
-        type: String 
+        type: String
     },
     role:{
         type: String
@@ -21,8 +24,17 @@ var problemSchema = new mongoose.Schema({
     infor:{
         type:Object 
     },
-    name: {
-        type:String
+    label: {
+        type:Object
+    },
+    primary: {
+        type:Boolean
+    },
+    createdBy: {
+        type: Object
+    },
+    modifiedBy: {
+        type: Object
     }
 }, {
     timestamps: true

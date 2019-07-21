@@ -13,6 +13,8 @@ exports.getVisits = function(req, res, next) {
     });
 
 }
+
+
 exports.getVisitsByPatient = function(req, res, next) {
 
 

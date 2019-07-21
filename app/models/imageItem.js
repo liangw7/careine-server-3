@@ -5,6 +5,9 @@ var imageItemSchema = new mongoose.Schema({
     name: {
         type: String
     },
+    label:{
+        type: Object
+    },
     internalName: {
         type: String
     },

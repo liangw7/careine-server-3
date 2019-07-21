@@ -64,8 +64,10 @@ exports.getDatasByOb = function(req, res, next) {
 exports.getPatientsByFilter = function(req, res, next) {
 
     var patientList ;
+
+    console.log ('req.body.patientListID',req.body.patientListID)
     
-   Category.findById({ _id: req.body.patientListID }).exec(function(err, patientList) {
+   Category.findById({ _id: mongoose.Types.ObjectId(req.body.patientListID) }).exec(function(err, patientList) {
 
     if (err) throw err;
      
@@ -88,7 +90,9 @@ exports.getPatientsByFilter = function(req, res, next) {
       
         }
     var pipeline= [
+
         {"$unwind": "$values"},
+        { "$match": { "values.text": {$exists:false } }},
        { "$project": { 
                         optionSum: { $concat: [ "$obID", "-", "$values" ] },
                         patientID:1,
@@ -98,6 +102,21 @@ exports.getPatientsByFilter = function(req, res, next) {
         } 
         },
         { "$match": { "optionSum": {$in:optionSum } }},
+
+        { "$lookup": {
+            "let": { "patientID": "$patientID" },
+            "from": "users",
+            "pipeline": [
+            { "$match": { "$expr":{ '$and':[
+                                            { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
+                                          //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
+                                        ]}
+              } }
+            ],
+            "as": "patientData"
+        }},
+        {"$unwind": "$patientData"},
+        { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
 
         {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
                     values:{$last:"$values"},
@@ -170,6 +189,7 @@ exports.getPatientsByFilter = function(req, res, next) {
     else{
         pipeline= [
             {"$unwind": "$values"},
+            { "$match": { "values.text": {$exists:false } }},
            { "$project": { 
                             optionSum: { $concat: [ "$obID", "-", "$values" ] },
                             patientID:1,
@@ -179,6 +199,20 @@ exports.getPatientsByFilter = function(req, res, next) {
             } 
             },
             { "$match": { "optionSum": {$in:optionSum } }},
+            { "$lookup": {
+                "let": { "patientID": "$patientID" },
+                "from": "users",
+                "pipeline": [
+                { "$match": { "$expr":{ '$and':[
+                                                { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
+                                              //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
+                                            ]}
+                  } }
+                ],
+                "as": "patientData"
+            }},
+            {"$unwind": "$patientData"},
+            { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
     
             {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
                         values:{$last:"$values"},
@@ -217,7 +251,7 @@ exports.getPatientsByFilter = function(req, res, next) {
         } 
     
 
-    console.log('optionSum',optionSum);
+    console.log('profileID',req.body.profileID);
     Data.aggregate(
             pipeline,
             function(err, result)	{
@@ -233,10 +267,36 @@ exports.getPatientsByFilter = function(req, res, next) {
             });
     }
      
+
 exports.getReport = function(req, res, next) {
 
         var    pipeline= [
                 { "$match": { "obID": req.body.obID }},
+
+                { "$lookup": {
+                    "let": {"patientID":"$patientID" },
+                    "from": "users",
+                    "pipeline":[
+                        {
+                              "$match": {
+                                      "$expr": {
+                                           "$and": [
+                                                {
+                                                    "$eq": [ {"$toString":"$_id"}, "$$patientID" ]
+                                                }
+                                             
+                                                
+                                            ]
+                                      }
+                                      }
+                                  }
+                          ],
+
+                    "as": "patientData"
+                }}, 
+                {"$unwind": "$patientData"},  
+                {"$unwind": "$patientData.profiles"},  
+                { "$match": { "patientData.profiles._id": req.body.profileID }},
                
                 {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
                             values:{$last:"$values"}}
@@ -262,7 +322,7 @@ exports.getReport = function(req, res, next) {
         Data.aggregate(
                 pipeline,
                 function(err, result)	{
-                    console.log ('_id',req.body.patientListID )
+                    console.log ('_id',req.body.profileID )
                     console.log ('result',result)
                     if(err)	{
                         console.log(err);
@@ -272,6 +332,7 @@ exports.getReport = function(req, res, next) {
                     }
                 })
     }
+
 
 
 exports.getMultiReport = function(req, res, next) {

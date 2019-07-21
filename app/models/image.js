@@ -8,6 +8,7 @@ var ImageSchema = new mongoose.Schema({
     name: {
         type: String
     },
+   
     displayName: {
         type: String
     },

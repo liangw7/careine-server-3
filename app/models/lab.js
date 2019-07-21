@@ -8,6 +8,7 @@ var LabSchema = new mongoose.Schema({
     name: {
         type: String
     },
+    
     displayName: {
         type: String
     },
@@ -40,8 +41,29 @@ var LabSchema = new mongoose.Schema({
     },
     status: {
         type: String
-    }
-
+    },
+    value:{
+        type:String
+    },
+    resultAt:{
+        type:Date
+    },
+    enteredBy:{
+        type:Object
+    },
+    values:[],
+    UOM:{
+        type:String
+    },
+    method:{
+        type:String
+    },
+    createdBy: {
+        type: Object
+    },
+    modifiedBy: {
+        type: Object
+    },
 }, {
     timestamps: true
 });

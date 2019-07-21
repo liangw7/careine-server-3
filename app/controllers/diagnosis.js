@@ -35,8 +35,8 @@ exports.getById = function(req, res, next) {
 exports.getByFilter = function(req, res, next) {
 
     
- 
-    Diagnosis.find( req.body, function(err, data) {
+    console.log ('req.body.filter',req.body.filter)
+    Diagnosis.find( req.body.filter, function(err, data) {
         if (err) {
             res.send(err);
             console.log(err);
@@ -58,6 +58,56 @@ exports.getByFilter = function(req, res, next) {
 
 }
 
+exports.getBySearch = function(req, res, next) {
+
+    var pipeline=[
+
+       // {"$match": {'$text': {'$search': "A" } }}
+       {'$project':{
+            Meta:0,
+            _kind:0,
+            subDiagnosisList:0
+        }},
+        {"$unwind":"$Rubric"},
+        { "$match": { "$or":[
+                             {"_code":{'$regex':req.body.filter.search}},
+                             {"Rubric.Label.__text":{'$regex':req.body.filter.search}},
+                        ]
+                    }
+        },
+        {'$group':{
+                    '_id':{'_id':'$_id',
+                        'SuperClass':'$SuperClass',
+                        '_code':'$_code',
+                        'SubClass':'$SubClass'
+                        },
+                  'Rubric':{"$push":'$Rubric'}
+                }
+            },
+       {'$project':{
+                '_id':'$_id._id',
+                'SuperClass':'$_id.SuperClass',
+                '_code':'$_id._code',
+                'SubClass':'$_id.SubClass',
+                'Rubric':1
+            }},
+        
+    ]
+ 
+    Diagnosis.aggregate(
+        pipeline,
+       function(err, result)   {
+       console.log ('_id',req.body.filter.search)
+       console.log ('result',result)
+       if(err) {
+           console.log(err);
+       }
+       else{
+            res.json(result);
+       }
+   })
+}
+       
 
 exports.Update = function(req, res, next) {
 
@@ -75,6 +125,22 @@ exports.Update = function(req, res, next) {
 exports.Create = function(req, res, next) {
 
     Diagnosis.create((req.body),
+        function(err, Diagnosis) {
+
+            if (err) {
+                res.send(err);
+            }
+
+            res.json(Diagnosis);
+
+
+
+        });
+
+}
+exports.CreateMany = function(req, res, next) {
+
+    Diagnosis.insertMany((req.body),
         function(err, Diagnosis) {
 
             if (err) {

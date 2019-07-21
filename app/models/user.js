@@ -38,20 +38,38 @@ var UserSchema = new mongoose.Schema({
     photo:{
         type: String
     },
+   specialty:{
+        type: String
+    },
     color:{
         type: String
     },
+    desc:{
+        type: String
+    },
+    procedureDate:{
+        type:Date
+    },
+    createdBy: {
+        type: Object
+    },
+    modifiedBy: {
+        type: Object
+    },
+
     activity: { type: Object },
     profiles:[],
     service: { type: Object },
     providers:[],
+    labs:[],
     serviceList:[],
     allergyList:[],
-    problems:[],
+    primaryProblem:{ type: Object },
     userID: {
         type: String
     },
     patientLists:[],
+    screeningList:[],
     educations:[],
     carePlans:[]
 }, {

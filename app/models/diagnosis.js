@@ -11,10 +11,33 @@ var diagnosisSchema = new mongoose.Schema({
     level: {
         type: Number
     },
-    subDiagnosisList: []
+    subDiagnosisList: [],
+    SubClass:{
+        type:[]
+    },
+    Meta:{
+        type:[]
+    },
+    Rubric:{
+        type:[]
+    },
+    chRubric:{
+        type:[]
+    },
+    SuperClass:{
+        type:[]
+    },
+    _code:{
+        type: String
+    },
+    _kind:{
+        type:String
+    }
     
 }, {
     timestamps: true
 });
+
+diagnosisSchema.index({ _code: "text" }); //{ "$**": "text" }
 
 module.exports = mongoose.model('diagnosis', diagnosisSchema);

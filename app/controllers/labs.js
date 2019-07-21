@@ -68,14 +68,21 @@ exports.getLab = function(req, res, next) {
 }
 
 exports.delete = function(req, res, next) {
-
     Lab.remove({
-        ID: req.params.labId
-    }, function(err, Lab) {
-        var path = '././labs/' + req.params.labId + '.jpg'
-        fs.unlink(path);
-        res.json(Lab);
+        _id: req.params.labId
+    }, function(err, data) {
+
+        var path='./././uploads/'+'photo-'+ req.params.labId+'.png';
+
+        fs.unlink(path, (err) => {
+            if (err) {
+              console.error(err)
+              return
+            }
+        console.log ('deleted', path)        
+        res.json(data);
     });
+});
 }
     
 exports.Update = function(req, res, next) {

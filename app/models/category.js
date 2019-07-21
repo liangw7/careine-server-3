@@ -8,6 +8,15 @@ var categorySchema = new mongoose.Schema({
     internalName: {
         type: String
     },
+    label:{
+        type:Object
+    },
+    gender:{
+        type:String
+    },
+    education:{
+        type: Object
+    },
     type: {
         type: String
     },
@@ -23,9 +32,10 @@ var categorySchema = new mongoose.Schema({
     formType: {
         type: String
     },
-    activityForm: {
-        type: Object
+    formStyle: {
+        type: String
     },
+    
     singleSelection: {
         type: String
     },
@@ -62,6 +72,9 @@ var categorySchema = new mongoose.Schema({
     isOrderMaster:{
         type: String
     },
+    addLabs:{
+        type: String
+    },
     addMoreThanOnce: {
         type: String
     },
@@ -77,9 +90,14 @@ var categorySchema = new mongoose.Schema({
     formula: {
         type: String
     },
+
+    image: {
+        type: String
+    },
     options: [],
     obs: [],
     obSets: [],
+    labItems:[],
   //  activities: [],
   //  profiles: [],
     calculationItems: [],

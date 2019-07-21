@@ -23,13 +23,13 @@ var dataSchema = new mongoose.Schema({
     followupID:{
         type: String
     },
-    problemID:{
+    problemItemID:{
         type: String
     },
     familyMember: {
         type: String
     },
-    medicationID:{
+    medicationItemID:{
         type: String
     },
     scheduleID:{

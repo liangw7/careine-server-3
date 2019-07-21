@@ -98,15 +98,22 @@ exports.getImage = function(req, res, next) {
 }
 
 exports.delete = function(req, res, next) {
-
+    var path='./././uploads/'+'photo-'+ req.params.imageId+'.png';
+    console.log ('req.params', req.params)    
     Image.remove({
-        ID: req.params.imageId
-    }, function(err, Image) {
-        var path = '././images/' + req.params.imageId + '.jpg'
-        fs.unlink(path);
-        res.json(Image);
-    });
+        _id: req.params.imageId
+    }, function(err, data) {
 
+           
+        fs.unlink(path, (err) => {
+            if (err) {
+              console.error(err)
+              return
+            }
+        console.log ('deleted', path)        
+        res.json(data);
+    });
+});
 }
 exports.create = function(req, res, next) {
     

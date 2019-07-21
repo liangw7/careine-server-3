@@ -1,5 +1,5 @@
 var User = require('../models/user');
-var mongoose = require('mongoose');
+const mongoose = require('mongoose');
 var fs = require('fs');
 //var ObjectId = mongoose.Types.ObjectId;
 
@@ -170,6 +170,7 @@ exports.getPatientsByPlace= function(req, res, next) {
        
 
 }
+
 
 
 exports.getUsersByRole = function(req, res, next) {
@@ -352,5 +353,277 @@ exports.deleteUser = function(req, res, next) {
         next();
 
     });
-
 }
+
+exports.getUserProfiles = function(req, res, next) {
+
+        var pipeline= [
+                    { "$match": { "_id": mongoose.Types.ObjectId(req.body.filterID) }},
+                             
+                    { "$unwind": "$profiles"},
+                    { "$lookup": {
+                     "let": { "profilesID": "$profiles._id" },
+                       "from": "categories",
+                        "pipeline": [
+                         { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$profilesID"} ] } } }
+                          ],
+                         "as": "profiles_doc"
+                        }
+                    },
+                        { "$unwind": "$profiles_doc"},
+
+                        {"$group": {_id:{_id: "$_id",
+                                        name:"$name"},
+                                    profiles: {$push:"$profiles_doc"}
+                
+                            }
+                        },
+                        {"$project": {name:"$_id.name",
+                                    _id:"$_id._id",
+                                     profiles: "$profiles"}
+                        },
+
+                            ];
+                    User.aggregate(
+                          pipeline,
+                         function(err, result)   {
+                  
+                         if(err) {
+                             console.log(err);
+                         }
+                         else{
+                              res.json(result);
+                         }
+                     })
+                  
+         }
+         
+
+exports.getProviders = function(req, res, next) {
+
+            var pipeline= [
+                        { "$match": { "_id": mongoose.Types.ObjectId(req.body.serviceID) }},
+                                 
+                        { "$unwind": "$providers"},
+
+                        { "$lookup": {
+                         "let": { "providersID": "$providers._id" },
+                           "from": "users",
+                            "pipeline": [
+                             { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$providersID"} ] } } }
+                              ],
+                             "as": "providers_doc"
+                            }
+                        },
+
+                        { "$unwind": "$providers_doc"},
+    
+                            {"$group": {_id:{_id: "$_id",
+                                            name:"$name",
+                                            desc:"$desc",
+                                            photo: "$photo"},
+                                        providers: {$push:"$providers_doc"}
+                    
+                                }
+                            },
+                            {"$project": {name:"$_id.name",
+                                        _id:"$_id._id",
+                                        photo:"$_id.photo",
+                                        desc:"$_id.desc",
+                                         providers: "$providers"}
+                            },
+    
+                                ];
+                        User.aggregate(
+                              pipeline,
+                             function(err, result)   {
+                      console.log ('result providers', result)
+                             if(err) {
+                                 console.log(err);
+                             }
+                             else{
+                                  res.json(result);
+                             }
+                         })
+                      
+             }
+
+exports.getlabItems = function(req, res, next) {
+
+                var pipeline= [
+                    { "$match": { "_id":{"$eq" : mongoose.Types.ObjectId(req.body.patientID)}}},
+            
+                    { "$unwind": "$profiles"}, 
+                    { "$lookup": {
+                        "let": { "profilesID": "$profiles._id" },
+                        "from": "categories",
+                        "pipeline": [
+                                { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$profilesID"} ] } } }
+                                ],
+                        "as": "detail_profiles"
+                    }}, 
+                   // { "$replaceRoot": { newRoot: "$$obSets" } },                
+                    { "$unwind": "$detail_profiles"},
+                    { "$unwind": "$detail_profiles.forms"},
+
+                    //look for lab form
+                    { "$match": { "detail_profiles.forms.formType":{"$eq" : "lab"}}},
+                    { "$lookup": {
+                        "let": { "formsID": "$detail_profiles.forms._id" },
+                        "from": "categories",
+                        "pipeline": [
+                                { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$formsID"} ] } } }
+                                ],
+                        "as": "detail_profiles.detail_forms"
+                    }},
+                    { "$unwind": "$detail_profiles.detail_forms"},
+                    { "$unwind": "$detail_profiles.detail_forms.obSets"},
+                    //group labs together
+                    {"$group":{"_id": {"_id":"$_id"},
+                                "obSets":{"$push":"$detail_profiles.detail_forms.obSets"}
+                     
+                              }
+                    },
+
+                    { "$unwind": "$obSets"},
+
+                    { "$lookup": {
+                        "let": { "obSetsID": "$obSets._id" },
+                        "from": "categories",
+                        "pipeline": [
+                                { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obSetsID"} ] } } }
+                                ],
+                        "as": "detail_obSets"
+                    }},
+
+                    { "$unwind": "$detail_obSets"},
+
+
+                    { "$replaceRoot": { newRoot: "$detail_obSets" } }, 
+
+                    { "$unwind": "$labItems"},
+                    { "$lookup": {
+                            "let": { "labItemsID": "$labItems._id" },
+                            "from": "labitems",
+                            "pipeline": [
+                                    { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$labItemsID"} ] } } }
+                                    ],
+                            "as": "detail_labItems"
+                                }
+                    },
+            
+                    { "$unwind": 
+                            "$detail_labItems"
+                    },
+                    { "$lookup": {
+                            "let": { "labItemsID": "$labItems._id" },
+                            "from": "labs",
+                            "pipeline": [
+                                    { "$match": 
+                                       { "$expr": {
+                                        "$and":[     
+                                                {
+                                                   "$eq": [ "$patientID", req.body.patientID ]
+                                                },
+                                                {
+                                                   "$eq": ["$labItemID", {"$toString":"$$labItemsID"} ]
+                                                }
+                                                ]
+                                      } }}],
+                                    
+                            "as": "value_labItems"
+                    }},
+                    { "$unwind": 
+                            {"path": "$value_labItems",
+                            "preserveNullAndEmptyArrays": true
+                            }
+                    },
+                    {"$addFields": {
+                        "value_labItems.values":
+                        { "$cond": {
+                            if :{"$ne": ["$value_labItems.value", null]},
+                            then:{
+                             "$map":
+                                {
+                                  input: "$value_labItems.options",
+                                  as: "option",
+                                  in: { "$cond": 
+                                            { if:{ "$and":
+                                            [{ $gte:[{"$toDecimal":"$value_labItems.value"}, "$$option.from" ] },
+                                            { $lt: [{"$toDecimal":"$value_labItems.value"}, "$$option.to" ] }
+                                            ]
+                                            }, 
+                                            then: "$$option",
+                                            else:''
+                                            }
+                                        }
+                                }
+                           },
+                         else:[]
+                            }
+                            }
+                        }
+                    },
+            
+                    {"$group":{
+                                _id:{_id:"$_id", 
+                                    label:"$label",
+                                    labID:"$detail_labItems._id", 
+                                    labLabel:"$detail_labItems.label",
+                                    labUOM:"$detail_labItems.uom",
+                                    labType:"$detail_labItems.labType"
+                                },
+                                labValue:{"$push":"$value_labItems.value"},
+                                labValueID:{"$push":"$value_labItems._id"},
+                                labValues:{"$push":"$value_labItems.values"},
+                                labTimeStamps:{"$push":"$value_labItems.resultAt"}
+                        }
+            
+                    },
+                    {"$project":{
+                        _id:"$_id._id",
+                        label:"$_id.label",
+                        labs:{_id:"$_id.labID", 
+                            label:"$_id.labLabel",
+                            uom:"$_id.labUOM",
+                            valueSet:"$labValue",
+                            labValueID:"$labValueID",
+                            valuesSet:"$labValues" ,
+                            timeStamps:"$labTimeStamps"
+                            }
+            
+                    }},
+                    {"$group":{
+                                _id:{_id:"$_id", 
+                                    label:"$label"
+                                    },
+                            labs:{"$push":"$labs"}
+                        
+                        }
+            
+                    },
+            
+                    {"$project":{
+                        _id:"$_id._id",
+                        label:"$_id.label",
+                        labs:"$labs"
+                    }}
+                  
+                  
+                ];
+                User.aggregate(
+                    pipeline,
+                    function(err, result)   {
+                        console.log ('_id',req.body)
+                        console.log ('result',result)
+                        if(err) {
+                            console.log(err);
+                            }
+                        else{
+                            res.json(result);
+                            }
+                        })
+                              
+                     }
+                        
+            

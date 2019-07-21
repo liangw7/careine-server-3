@@ -27,7 +27,10 @@ var AuthenticationController = require('./controllers/authentication'),
     passportService = require('../config/passport'),
     passport = require('passport');
     var path = require('path');
-    var  fs = require('fs');
+    const fs = require('fs')
+    const { promisify } = require('util')
+    
+    const unlinkAsync = promisify(fs.unlink)
     var multer = require('multer');
 
 var roleList=['admin', 'provider', 'patient', 'market','specialist'];
@@ -36,18 +39,7 @@ var requireAuth = passport.authenticate('jwt', { session: false }),
 
 module.exports = function(app) {
 
-    const DIR = '././uploads';
- 
-    let storage = multer.diskStorage({
-        destination: (req, file, cb) => {
-          cb(null, DIR);
-        },
-        filename: (req, file, cb) => {
-            console.log ('file', file.fieldname);
-          cb(null, file.fieldname + '-' + file.originalname);
-        }
-    });
-    let upload = multer({storage: storage});
+  
 
     var apiRoutes = express.Router(),
         authRoutes = express.Router(),
@@ -87,6 +79,9 @@ module.exports = function(app) {
    //upload routes
         apiRoutes.use('/upload', uploadRoutes);
 
+       
+
+
         uploadRoutes.get('/', function (req, res) {
             res.end('file catcher example');
         });
@@ -116,6 +111,19 @@ module.exports = function(app) {
             });
         })
 
+        const DIR = '././uploads';
+ 
+        let storage = multer.diskStorage({
+            destination: (req, file, cb) => {
+              cb(null, DIR);
+            },
+            filename: (req, file, cb) => {
+                console.log ('file', file.fieldname);
+              cb(null, file.fieldname + '-' + file.originalname);
+            }
+        });
+        let upload = multer({storage: storage});
+
         uploadRoutes.post('/',upload.single('photo'), function (req, res) {
             if (!req.file) {
               //  console.log("No file received");
@@ -124,12 +132,13 @@ module.exports = function(app) {
                 });
             
                 } else {
-              //  console.log('file received');
+                console.log('file received');
                 return res.send({
                     success: true
                 })
                 }
-        });     
+        }); 
+     
     // Todo Routes
     apiRoutes.use('/todos', todoRoutes);
     todoRoutes.get('/', requireAuth, TodoController.getTodos);
@@ -155,8 +164,10 @@ module.exports = function(app) {
     apiRoutes.use('/diagnosis', diagnosisRoutes);    
     diagnosisRoutes.get('/', DiagnosisController.getAllDiagnosis);
     diagnosisRoutes.post('/', DiagnosisController.Create);
+    diagnosisRoutes.post('/bulk', DiagnosisController.CreateMany);
     diagnosisRoutes.delete('/:diagnosisId',  DiagnosisController.Delete);
     diagnosisRoutes.post('/filter', DiagnosisController.getByFilter);
+    diagnosisRoutes.post('/search', DiagnosisController.getBySearch);
     diagnosisRoutes.get('/diagnosisId',  DiagnosisController.getById);
     diagnosisRoutes.post('/update',  DiagnosisController.Update);
     // Mail Routes
@@ -176,6 +187,8 @@ module.exports = function(app) {
      problemRoutes.post('/filter',  ProblemController.getByFilter);
      problemRoutes.get('/id',  ProblemController.getById);
      problemRoutes.post('/update',   ProblemController.Update);
+     
+     problemRoutes.post('/getPatientProblems',   ProblemController.getPatientProblems);
 
           //OrderItem Routes
           apiRoutes.use('/orderItem', orderItemRoutes);    
@@ -185,6 +198,10 @@ module.exports = function(app) {
           orderItemRoutes.post('/filter',  OrderItemController.getByFilter);
           orderItemRoutes.get('/:orderItemId',  OrderItemController.getById);
           orderItemRoutes.post('/update',   OrderItemController.Update);
+          orderItemRoutes.post('/getMedicationForm',   OrderItemController.getMedicationForm);
+          orderItemRoutes.post('/getItems',   OrderItemController.getItems);
+          
+          
             //LabItem Routes
             apiRoutes.use('/labItem', labItemRoutes);    
             labItemRoutes.get('/',  LabItemController.getAll);
@@ -274,6 +291,9 @@ module.exports = function(app) {
     userRoutes.post('/dailyPatients', UserController.getDailyPatients);
     userRoutes.post('/monthlyPatients', UserController.getMonthlyPatients);
     userRoutes.post('/getProfilePhoto',  UserController.getProfilePhoto);
+    userRoutes.post('/getUserProfiles',  UserController.getUserProfiles);
+    userRoutes.post('/getProviders',  UserController.getProviders);
+    userRoutes.post('/getlabItems',  UserController.getlabItems);
     userRoutes.post('/update',  UserController.updateUser);
 
     userRoutes.delete('/:User_id', UserController.deleteUser);
@@ -323,6 +343,8 @@ module.exports = function(app) {
     MedRoutes.post('/filter',  MedController.getByFilter);
     MedRoutes.post('/',  MedController.create);
     MedRoutes.delete('/:medId',  MedController.delete);
+    MedRoutes.post('/getPatientmedications',  MedController.getPatientmedications);
+    
        // order Routes
        apiRoutes.use('/orders', orderRoutes);
        orderRoutes.get('/:orderId',  OrderController.getById);
@@ -334,6 +356,7 @@ module.exports = function(app) {
        orderRoutes.post('/',  OrderController.create);
        orderRoutes.delete('/:orderId',  OrderController.delete);
        orderRoutes.post('/filter',  OrderController.getByFilter);
+       orderRoutes.post('/getconsultsByService',  OrderController.getconsultsByService);
 
     // Category Routes
     apiRoutes.use('/categories', CategoryRoutes);
@@ -350,9 +373,13 @@ module.exports = function(app) {
     CategoryRoutes.post('/fields', CategoryController.getByFields);
     CategoryRoutes.post('/orderMaster', CategoryController.getOrderMasters);
     CategoryRoutes.post('/getForm', CategoryController.getForm);
+    CategoryRoutes.post('/getProblemForm', CategoryController.getProblemForm);
     CategoryRoutes.post('/getSummary', CategoryController.getSummary);
     CategoryRoutes.delete('/:categoryId',  CategoryController.delete);
-
+    CategoryRoutes.post('/getlabItems', CategoryController.getlabItems);
+    CategoryRoutes.post('/getUserForm', CategoryController.getUserForm);
+    CategoryRoutes.post('/getFormById', CategoryController.getFormById);
+  
     // Request Routes
     apiRoutes.use('/Requests', RequestRoutes);
     RequestRoutes.post('/',  RequestController.getRequestById);
@@ -367,7 +394,7 @@ module.exports = function(app) {
    // imageRoutes.post('/',  ImageController.uploadImage);
     imageRoutes.post('/patient',  ImageController.getByPatient);
     imageRoutes.post('/getImage',  ImageController.getImage);
-    imageRoutes.delete('/:ID',  ImageController.delete);
+    imageRoutes.delete('/:imageId',  ImageController.delete);
     imageRoutes.post('/filter', ImageController.getByFilter);
     imageRoutes.post('/',   ImageController.create);
     //labs Routes
@@ -375,7 +402,7 @@ module.exports = function(app) {
    // labRoutes.post('/upload',  LabController.uploadLab);
     labRoutes.post('/patient',  LabController.getByPatient);
     labRoutes.post('/getLab',  LabController.getLab);
-    labRoutes.delete('/:ID',  LabController.delete);
+    labRoutes.delete('/:labId',  LabController.delete);
     labRoutes.post('/Update',  LabController.Update);
     labRoutes.post('/',  LabController.create);
     labRoutes.post('/visit',  LabController.getByVisit);

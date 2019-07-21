@@ -161,3 +161,43 @@ exports.delete = function(req, res, next) {
     });
 
 }
+
+exports.getconsultsByService= function(req, res, next) {
+
+ console.log ('serviceID',req.body.serviceID);
+ 
+    var pipeline=   [   { $match: {serviceID:req.body.serviceID }},
+
+                        { "$lookup": {
+                            "let": { "patientID": "$patientID" },
+                            "from": "users",
+                            "pipeline": [
+                            { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$patientID"} ] } } }
+                            ],
+                            "as": "patient"
+                        }},
+                        { "$lookup": {
+                            "let": { "providerID": "$providerID" },
+                            "from": "users",
+                            "pipeline": [
+                            { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$providerID"} ] } } }
+                            ],
+                            "as": "provider"
+                        }},
+
+                        { "$unwind": '$patient'} ,
+                        { "$unwind": '$provider'} ,
+                    ];
+    Order.aggregate(pipeline,
+       // cursor({ batchSize: 1000 }),
+        function(err, result)	{
+            if(err)	{
+                console.log(err);
+            }
+            else	{
+                res.json(result);
+            }
+        });
+       
+
+}

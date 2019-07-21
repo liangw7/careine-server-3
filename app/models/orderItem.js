@@ -8,12 +8,18 @@ var orderItemSchema = new mongoose.Schema({
     internalName: {
         type: String
     },
+    label:{
+        type: Object
+    },
    orderType:{
        type: String
    },
    medsClass:{
        type: String
    },
+   specialty:{
+    type: String
+},
     uom: {
         type: String
     },
@@ -40,6 +46,9 @@ var orderItemSchema = new mongoose.Schema({
         type:[]
     },
     items:{
+        type:[]
+    },
+    obs:{
         type:[]
     },
     coOrders:{

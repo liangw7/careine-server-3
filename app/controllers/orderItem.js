@@ -1,4 +1,5 @@
 var OrderItem = require('../models/orderItem');
+const mongoose = require('mongoose');
 
 exports.getAll = function(req, res, next) {
 
@@ -31,7 +32,391 @@ exports.getById = function(req, res, next) {
 
 }
 
+exports.getMedicationForm = function(req, res, next) {
 
+    var patientType='patient';
+    var visitType='visit';
+    var obIDs=[];
+   
+    var medicationID=mongoose.Types.ObjectId(req.body.medicationID);
+    console.log ('medication._id-1', medicationID)
+
+  
+   
+            pipeline= [
+                           { "$match": { "_id": medicationID}},
+                           { "$unwind": "$obs"},
+                           { "$lookup": {
+                                "let": { "id": "$obs._id" },
+                                "from": "categories",
+                                "pipeline": [
+                                { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$id"} ] } } }
+                                ],
+                                "as": "obs_doc"
+                            }},
+            
+                            { "$unwind": 
+                                '$obs_doc', },
+
+                     
+                            {'$project':
+                                { 
+                                'addsIn':'$obs.addsIn',
+                                'index':'$obs.index',
+                                'name':'$obs.name',
+                                'label':'$obs_doc.label',
+                                 'options':'$obs_doc.options',
+                                 'type':'$obs_doc.type',
+                                 'context':'$obs_doc.context',
+                                  '_id':'$obs_doc._id',
+                                  'values':[]
+                               
+                                }
+                             }
+
+];
+                    
+            OrderItem.aggregate(
+                     pipeline,
+                    function(err, result)   {
+                    console.log ('_id',req.body.formIDs)
+                    console.log ('result',result)
+                    if(err) {
+                        console.log(err);
+                    }
+                    else{
+                         res.json(result);
+                    }
+                })
+            
+    
+} 
+exports.getItems = function(req, res, next) {
+    var orderItemID=mongoose.Types.ObjectId(req.body.orderItemID);
+
+     pipeline= [
+        { "$match": { "_id": orderItemID}},
+        { "$unwind": "$items"},
+        { "$lookup": {
+            "let": { "obsID": "$items._id" , 
+                     "context": "$items.context",
+                      "mappingOb":"$items.mappingOb"},
+          "from": "datas",
+          "pipeline":[
+                          {
+                                "$match": {
+                                        "$expr": {
+                                            "$or":[
+                                                {
+                                              "$and": [
+                                                  {
+                                                      "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                  },
+                                                  {
+                                                      "$eq": [ "$patientID", req.body.patientID ]
+                                                  },
+                                                  {
+                                                    "$eq": [ "$$context", 'patient' ]
+                                                },
+                                                  
+                                              ]
+                                            },
+                                          
+                                         
+                                          {
+                                              "$and": [
+                                                  {
+                                                      "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                  },
+                                                  {
+                                                      "$eq": [ "$patientID", req.body.patientID ]
+                                                  },
+                                                  {
+                                                      "$eq": [ "$visitID", req.body.visitID ]
+                                                  },
+                                                  {
+                                                      "$eq": [ "$$context", null ]
+                                                  },
+                                                 
+                                                  
+                                              ]
+                                          },
+                                          {
+                                              "$and": [
+                                                  {
+                                                      "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                  },
+                                                  {
+                                                      "$eq": [ "$patientID", req.body.patientID ]
+                                                  },
+                                                  {
+                                                      "$eq": [ "$visitID", req.body.visitID  ]
+                                                  },
+                                                  {
+                                                      "$eq": [ "$$context", 'visit' ]
+                                                  },
+                                                 
+                                                  
+                                              ]
+                                          },
+                                       
+                                          {
+                                              "$and": [
+                                                  {
+                                                      "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
+                                                  },
+                                                  {
+                                                      "$eq": [ "$patientID", req.body.patientID]
+                                                  }
+                                                
+                                                  
+                                              ]
+                                            },
+                                      ]
+                                            
+                                        }
+                                        }
+                                    }
+                            ],
+
+                      "as": "items.patientData"
+                  }},
+                  
+  {"$addFields": {
+      "items.patientData":
+          { "$arrayElemAt": [ "$items.patientData", -1 ] }
+   }
+ },
+               
+{ "$lookup": {
+   "let": { "mappingLab":"$items.mappingLab"}, 
+   "from": "labs",
+   "pipeline":[
+              {"$match": {"$expr": {
+                          "$and": [
+                           {"$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
+                           },
+                            {"$eq": [ "$patientID", req.body.patientID ]
+                           },
+                           
+                            {"$gte": [ "$$mappingLab.searchDays",
+                                          {"$divide":
+                                              [{"$subtract":
+                                                  [{"$toDate":req.body.visitDate}, 
+                                                   {"$toDate":"$resultAt"} 
+                                                  ] },
+                                                  1000 * 3600 * 24 
+                                              ]
+
+                                          }
+                                                   
+                                      ]
+                              }
+                                             
+                      ]
+                          
+                      }
+                  }
+              }
+                      ],
+
+                      "as": "items.labData"
+                  }},  
+
+{"$addFields": {
+                      "items.labData":   
+                      { "$cond": {
+                          if:{ "$eq": ["$items.mappingLab.seiry", 0]},
+                          then:  { "$arrayElemAt": [ "$items.labData", -1 ] },
+                          else: { "$arrayElemAt": [ "$items.labData", -2 ] },
+                                  }
+                              }
+                              //last element
+                       }
+      },
+                      
+     {"$addFields": {
+                      "items.values":{ $ifNull: [ "$items.patientData.values", []] }
+                  }
+          },
+    
+  
+          {"$addFields": {
+              "items.patientData":
+                             { "$cond": {
+                                 if :{'$eq': ["$items.type", "mapping lab"]},
+                                 then:"$items.labData",
+                                 else:"$items.patientData"
+                                 
+                                 }
+                         }
+                     }
+          },
+          {"$addFields": {
+              "items.value":{ $ifNull: [ "$items.patientData.value", ''] }
+          }
+  },
+
+          {"$addFields": {
+              "items.label":{ $ifNull: [ "$items.label", {ch:'$items.name',en:''}] }
+          }
+  },
+       
+          {"$addFields": {
+              "items.values":
+              { "$cond": {
+                  if :{"$and":[{"$ne": ["$items.value", '']},
+                               {"$in":["$items.type",["number", "mapping ob","mapping", "mapping lab"]]}
+                              ]
+                          },
+                  then:{
+                   "$map":
+                      {
+                        input: "$items.options",
+                        as: "option",
+                        in: { "$cond": 
+                                  { if:{ "$and":
+                                  [{ $gte:[{"$toDecimal":"$items.value"}, "$$option.from" ] },
+                                  { $lt: [{"$toDecimal":"$items.value"}, "$$option.to" ] }
+                                  ]
+                                  }, 
+                                  then: "$$option",
+                                  else:null
+                                  }
+                              }
+                      }
+                 },
+                 else:  { "$cond": {
+                              if :{"$and":[
+                                          {"$in":["$items.type",["list"]]}
+                                          ]
+                                      },
+                              then:{
+                              "$map":
+                                  {
+                                  input: "$items.options",
+                                  as: "option",
+                                  in: { "$cond": 
+                                      { if:{ "$and":
+                                              [{ "$in":["$$option.text", "$obSets_doc.obs_doc.values" ] }
+                                              
+                                              ]
+                                              }, 
+                                              then: "$$option",
+                                              else:null
+                                              }
+                                          }
+                                  }
+                          },
+                          else:[]
+                  
+                      }
+          }
+                  
+                  }
+          }
+      }
+  },
+  {"$addFields": {
+      "items.values":
+      {$filter: {
+      input: "$items.values",
+      as: "item",
+      cond: { $ne: [ "$$item", null ] }
+   }
+      }
+  }
+},
+{ "$unwind": {
+  "path":'$items.values',
+  "preserveNullAndEmptyArrays": true
+} },
+
+
+  {"$group": {_id:{_id: "$_id",
+                      name:"$name",
+                      label:"$label",
+                   
+                      obID:'$items._id',
+                      obName:'$items.name',
+                      obLabel:'$items.label',
+                      obOptions:'$items.options',
+                  
+                      obType:'$items.type',
+                      obValue:'$items.value',
+                   
+                      obContext: '$items.context',
+                 
+                      
+                  },
+              obValues: {$push: '$items.values'},
+   
+              }         
+                  
+  },
+
+
+
+  {"$project":{
+      _id:'$_id._id',
+      name:'$_id.name',
+      label:'$_id.label',
+      items:{ _id:'$_id.obID',
+           name: '$_id.obName',
+           label: '$_id.obLabel',
+           options:'$_id.obOptions',
+         
+           type:'$_id.obType', 
+           value:'$_id.obValue',
+        
+           context:'$_id.obContext',
+          
+           values:'$obValues',
+          
+  }
+  }
+},
+{"$group": 
+    {_id:{_id: "$_id",
+        name:"$name",
+        label:"$label"
+        },
+    items: {$push: '$items'},
+    }
+
+},
+
+{"$project":{
+    _id:'$_id._id',
+    name:'$_id.name',
+    label:'$_id.label',
+    items:1
+}
+        
+     
+},
+
+
+     
+    ];
+                    
+                
+    OrderItem.aggregate(
+                     pipeline,
+                    function(err, result)   {
+                        console.log ('req.body.orderItemID',req.body.orderItemID)
+                    console.log ('result',result)
+                    if(err) {
+                        console.log(err);
+                    }
+                    else{
+                         res.json(result);
+                    }
+                })
+            
+    }
+
+ 
 exports.getByFilter = function(req, res, next) {
 
     

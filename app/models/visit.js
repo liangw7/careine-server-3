@@ -69,6 +69,15 @@ var visitSchema = new mongoose.Schema({
     },
     reservedAt: {
         type: Date
+    },
+    visitDate:{
+        type:Date
+    },
+    createdBy: {
+        type: Object
+    },
+    modifiedBy: {
+        type: Object
     }
   
 }, {

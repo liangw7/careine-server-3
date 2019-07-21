@@ -21,6 +21,9 @@ var orderSchema = new mongoose.Schema({
     orderItemID:{
         type: String
     },
+    serviceID:{
+        type:String
+    },
     
     providerID:{
         type: String
@@ -33,6 +36,12 @@ var orderSchema = new mongoose.Schema({
     },
     UOM:{
         type: String
+    },
+    createdBy: {
+        type: Object
+    },
+    modifiedBy: {
+        type: Object
     }
 
 }, {
