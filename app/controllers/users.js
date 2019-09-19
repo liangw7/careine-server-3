@@ -127,14 +127,26 @@ exports.getDailyPatients= function(req, res, next) {
 
 exports.getMonthlyPatients= function(req, res, next) {
 
-    User.aggregate(
-        [   { $match: {role: 'patient'}},
+
+
+        var IDList=[];
+        for (let id of req.body.serviceIDs){
+            IDList.push(mongoose.Types.ObjectId(id));
+        }
+        var pipeline=   [   
+            { $match: {role:'patient',serviceList: {'$elemMatch' :{'_id':{'$in':req.body.serviceIDs }}}}},
             {$group : { _id : { year : { $year : '$createdAt' }, month : { $month : '$createdAt' } }, count : { $sum : 1 }}},
             {$sort: {'_id.year':1, '_id.month':1}}
        
      //   "createdAt": { $gte: new Date((new Date().getTime() - (req.body.months * 24 * 60 * 60 * 1000))) }
      //       } }
-        ],
+        ];
+
+
+    
+
+    User.aggregate(
+        pipeline,
        // cursor({ batchSize: 1000 }),
         function(err, result)	{
             if(err)	{
@@ -147,7 +159,75 @@ exports.getMonthlyPatients= function(req, res, next) {
        
 
 }
+exports.getCountByService= function(req, res, next) {
 
+
+            var IDList=[];
+            for (let id of req.body.serviceIDs){
+                IDList.push(mongoose.Types.ObjectId(id));
+            }
+            var pipeline=   [   
+                { '$match': {'role':'patient',
+                            'serviceList': {'$elemMatch' :{'_id':{'$in':req.body.serviceIDs }}}
+                        }
+                    },
+                {'$unwind':'$serviceList'},
+                { '$match': {'serviceList._id':{'$in':req.body.serviceIDs }}},
+                { '$lookup': {
+                    "let": { "serviceListID": "$serviceList._id" },
+                    "from": "users",
+                    "pipeline": [
+                    { "$match": { "$expr":{'$or':[
+                                                { '$and':[
+                                                    { "$eq": [ {"$toString":"$_id"}, '$$serviceListID' ] }
+                                                   
+                                                ],
+                                            }
+                                          
+                                          
+                                        ]
+                                    }
+                      } 
+                    }
+                    ],
+                    "as": "serviceList.service"
+                }},
+                {'$unwind':'$serviceList.service'},
+                {'$group' : { _id : { serviceName : '$serviceList.service.name' , 
+                                      serviceID :'$serviceList._id' },
+                           
+                            count : { $sum : 1 }
+                            }
+                },
+                    
+                {"$project":{
+                        serviceName:'$_id.serviceName',
+                        serviceID:'$_id.serviceID',
+                        count:1,
+                   
+                        
+                    }
+                },
+           ];
+    
+    
+        
+    
+        User.aggregate(
+            pipeline,
+           // cursor({ batchSize: 1000 }),
+            function(err, result)	{
+                if(err)	{
+                    console.log(err);
+                }
+                else	{
+                    res.json(result);
+                }
+            });
+           
+    
+    }
+    
 exports.getPatientsByPlace= function(req, res, next) {
 
     User.aggregate(

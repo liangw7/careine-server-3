@@ -295,6 +295,8 @@ module.exports = function(app) {
     userRoutes.post('/getProviders',  UserController.getProviders);
     userRoutes.post('/getlabItems',  UserController.getlabItems);
     userRoutes.post('/update',  UserController.updateUser);
+    userRoutes.post('/getCountByService',  UserController.getCountByService);
+    
 
     userRoutes.delete('/:User_id', UserController.deleteUser);
 
@@ -375,6 +377,7 @@ module.exports = function(app) {
     CategoryRoutes.post('/getForm', CategoryController.getForm);
     CategoryRoutes.post('/getProblemForm', CategoryController.getProblemForm);
     CategoryRoutes.post('/getSummary', CategoryController.getSummary);
+    CategoryRoutes.post('/getReport', CategoryController.getReport);
     CategoryRoutes.delete('/:categoryId',  CategoryController.delete);
     CategoryRoutes.post('/getlabItems', CategoryController.getlabItems);
     CategoryRoutes.post('/getUserForm', CategoryController.getUserForm);

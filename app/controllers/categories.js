@@ -205,15 +205,23 @@ exports.getSummary = function(req, res, next) {
     }
                     }      
     },
+
     {"$addFields": {
         "obs_doc.alertLevel":
-        {
-            "$reduce": {
-                input: "$obs_doc.alertLevel",
-                initialValue: 0,
-                in: { $add: [ "$$value", "$$this" ] }
+        { "$cond": {
+            if :{'$eq': ["$obs_doc.type", 'string']},
+             then:  0,
+            else:{
+                "$reduce": {
+                    input: "$obs_doc.alertLevel",
+                    initialValue: 0,
+                    in: { $add: [ "$$value", "$$this" ] }
+                }
+            }
+            
             }
         }
+      
     }      
     },
     
@@ -298,7 +306,592 @@ exports.getSummary = function(req, res, next) {
                 })
              
     }
+
+exports.getReport = function(req, res, next) {
+
     
+    var type=req.body.type;
+    var context=req.body.context;
+
+   
+    if (type=='mapping ob'&&context=='visit'){
+        var pipeline= [
+            
+                        { "$match": { "_id": mongoose.Types.ObjectId(req.body.obID) }},
+                             
+                                { "$lookup": {
+                                   "let": {"obID": "$mappingOb._id"
+                                          },
+                                   "from": "datas",
+                                   "pipeline":[
+                                       {
+                                             "$match": {
+                                                     "$expr": {
+
+                                                       "$or":[
+                                                               {
+                                                                   "$and": [
+                                                                       {
+                                                                           "$eq": [ {"$toString":"$obID"}, {"$toString":"$$obID"} ]
+                                                                       },
+                                                                    
+                                                                   ]
+                                                               }
+                                                           ]
+                                                         
+                                                        
+                                                       }
+                                                     }
+                                                 }
+                                         ],
+             
+                                   "as": "data"
+                               }},
+                             {"$unwind": "$data"},   
+
+                            { "$lookup": {
+                                "let": {"visitID": "$data.visitID",
+                                        "mappingOb": "$mappingOb",
+                                       },
+                                "from": "visits",
+                                "pipeline":[
+                                    {
+                                          "$match": {
+                                                  "$expr": {
+
+                                                    "$or":[
+                                                            {
+                                                                "$and": [
+                                                                    {
+                                                                        "$eq": [ {"$toString":"$_id"}, {"$toString":"$$visitID"} ]
+                                                                    },
+                                                                    {
+                                                                        "$or": [
+                                                                            
+                                                                         
+                                                                            {"$and":[{"$ne": [ req.body.procedureDate,null]},  
+                                                                                    {"$gt": [ "$$mappingOb.frameDays",0]},
+                                                                                    {"$lte": [ {"$subtract":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
+                                                                                            {"$divide":  [{"$subtract":
+                                                                                                [{"$toDate":'$visitDate'}, 
+                                                                                                {"$toDate":req.body.procedureDate} 
+                                                                                                ] },
+                                                                                            1000 * 3600 * 24 ]
+                                                                                            } ]
+                                                                                    },
+                                                                                    {"$gte": [ {"$add":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
+                                                                                    {"$divide":  [{"$subtract":
+                                                                                        [{"$toDate":'$visitDate'}, 
+                                                                                        {"$toDate":req.body.procedureDate} 
+                                                                                        ] },
+                                                                                    1000 * 3600 * 24 ]
+                                                                                    } ]
+                                                                                }]
+                                                                            },
+                                                                            //look backwards from currentDate
+                                                                            {"$and":[
+                                                                               
+                                                                                  {"$eq": [ "$$mappingOb.frameDays",0]},
+                                                                                  {"$gte": [ "$$mappingOb.searchDays",
+                                                                                       {"$divide":
+                                                                                                [{"$subtract":
+                                                                                                        [{"$toDate":req.body.currentDate}, 
+                                                                                                        {"$toDate":"$visitDate"} 
+                                                                                                        ] },
+                                                                                                1000 * 3600 * 24 
+                                                                                                ]
+                          
+                                                                                             }
+                                                                                       
+                                                                                            ]
+                                                                                      }]
+                                                                      },
+                                                                              {
+                                                                                "$and": [
+                                                                                
+                                                                                    {"$eq": [ "$$mappingOb.frameDays",0]},
+                                                                                    {"$eq": [ "$$mappingOb.searchDays",0]},
+                                                                                        
+                                                                                  
+                                                                                    
+                                                                                ]
+                                                                              },
+                                                                            
+                                                                        ]
+                                                                      },
+                                                                 
+                                                                ]
+                                                            }
+                                                        ]
+                                                      
+                                                     
+                                                    }
+                                                  }
+                                              }
+                                      ],
+          
+                                "as": "data.visit"
+                            }},
+
+                             
+                                //get values from option 
+                                {"$addFields": {
+                                    "data.value":{ $ifNull: [ "$data.value",''] }
+                               }},
+
+                                {"$addFields": {
+                                    "data.values":
+                                    { "$cond": {
+                                        if :{"$and":[{"$ne": ["$data.value", '']},
+                                                     {"$in":["$type",["number", "mapping ob","mapping", "mapping lab"]]}
+                                                    ]
+                                                },
+                                        then:{
+                                         "$map":
+                                            {
+                                              input: "$options",
+                                              as: "option",
+                                              in: { "$cond": 
+                                                        { if:{ "$and":
+                                                        [{ $gte:[{"$toDecimal":"$value"}, "$$option.from" ] },
+                                                        { $lt: [{"$toDecimal":"$value"}, "$$option.to" ] }
+                                                        ]
+                                                        }, 
+                                                        then: "$$option",
+                                                        else:null
+                                                        }
+                                                    }
+                                            }
+                                       },
+                                       else:  { "$cond": {
+                                                    if :{"$and":[
+                                                                {"$eq":["$type","list"]}
+                                                                ]
+                                                            },
+                                                    then:{
+                                                    "$map":
+                                                        {
+                                                        input: "$options",
+                                                        as: "option",
+                                                        in: { "$cond": 
+                                                            { if:{ "$and":
+                                                                    [{ "$in":["$$option.text", "$data.values" ] }
+                                                                    
+                                                                    ]
+                                                                    }, 
+                                                                    then: "$$option",
+                                                                    else:null
+                                                                    }
+                                                                }
+                                                        }
+                                                },
+                                                else:[]
+                                        
+                                            }
+                                }
+                                        
+                                        }
+                                }
+                                }
+                            },
+                            { "$lookup": {
+                                "let": {"patientID":"$data.patientID" },
+                                "from": "users",
+                                "pipeline":[
+                                    {
+                                          "$match": {
+                                                  "$expr": {
+                                                       "$and": [
+                                                            {
+                                                                "$eq": [ {"$toString":"$_id"}, "$$patientID" ]
+                                                            }
+                                                         
+                                                            
+                                                        ]
+                                                  }
+                                                  }
+                                              }
+                                      ],
+            
+                                "as": "data.patientData"
+                            }}, 
+                            {"$unwind": "$data.patientData"},  
+                            {"$unwind": "$data.patientData.profiles"},  
+                            { "$match": { "data.patientData.profiles._id": req.body.profileID }},
+                            {"$unwind": "$data.patientData.serviceList"}, 
+                            { "$match": { "data.patientData.serviceList._id": req.body.serviceID }},
+                            {"$group": {_id:{obID: "$_id",
+                                        patientID:"$data.patientID"},
+                                        values:{$last:"$data.values"}}
+                            },
+                            {"$project":{
+                                obID:'$_id.obID',
+                                patientID:'$_id.patientID',
+                                values:1
+                            }},
+                            {"$unwind": "$values"},    
+                            {"$group": {_id:{values:"$values"},
+                                        count:{$sum:1}},
+                            },     
+                            {"$project":{
+                                values:'$_id.values',
+                              count:1,
+                              _id:0
+                               
+                            }},  
+
+
+                            
+
+
+                   
+     
+             ];
+            }
+    else  if (type=='mapping ob'&&context=='patient'){
+                var pipeline= [
+                    
+                                { "$match": { "_id": mongoose.Types.ObjectId(req.body.obID) }},
+                                     
+                                        { "$lookup": {
+                                           "let": {"obID": "$mappingOb._id"
+                                                  },
+                                           "from": "datas",
+                                           "pipeline":[
+                                               {
+                                                     "$match": {
+                                                             "$expr": {
+        
+                                                               "$or":[
+                                                                       {
+                                                                           "$and": [
+                                                                               {
+                                                                                   "$eq": [ {"$toString":"$obID"}, {"$toString":"$$dataID"} ]
+                                                                               },
+                                                                            
+                                                                           ]
+                                                                       }
+                                                                   ]
+                                                                 
+                                                                
+                                                               }
+                                                             }
+                                                         }
+                                                 ],
+                     
+                                           "as": "data"
+                                       }},
+                                   
+                                        //get values from option 
+                                        {"$addFields": {
+                                            "data.value":{ $ifNull: [ "$data.value",''] }
+                                       }},
+        
+                                        {"$addFields": {
+                                            "data.values":
+                                            { "$cond": {
+                                                if :{"$and":[{"$ne": ["$data.value", '']},
+                                                             {"$in":["$type",["number", "mapping ob","mapping", "mapping lab"]]}
+                                                            ]
+                                                        },
+                                                then:{
+                                                 "$map":
+                                                    {
+                                                      input: "$options",
+                                                      as: "option",
+                                                      in: { "$cond": 
+                                                                { if:{ "$and":
+                                                                [{ $gte:[{"$toDecimal":"$data.value"}, "$$option.from" ] },
+                                                                { $lt: [{"$toDecimal":"$data.value"}, "$$option.to" ] }
+                                                                ]
+                                                                }, 
+                                                                then: "$$option",
+                                                                else:null
+                                                                }
+                                                            }
+                                                    }
+                                               },
+                                               else:  { "$cond": {
+                                                            if :{"$and":[
+                                                                        {"$eq":["$type","list"]}
+                                                                        ]
+                                                                    },
+                                                            then:{
+                                                            "$map":
+                                                                {
+                                                                input: "$options",
+                                                                as: "option",
+                                                                in: { "$cond": 
+                                                                    { if:{ "$and":
+                                                                            [{ "$in":["$$option.text", "$data.values" ] }
+                                                                            
+                                                                            ]
+                                                                            }, 
+                                                                            then: "$$option",
+                                                                            else:null
+                                                                            }
+                                                                        }
+                                                                }
+                                                        },
+                                                        else:[]
+                                                
+                                                    }
+                                        }
+                                                
+                                                }
+                                        }
+                                        }
+                                    },
+                                    { "$lookup": {
+                                        "let": {"patientID":"$data.patientID" },
+                                        "from": "users",
+                                        "pipeline":[
+                                            {
+                                                  "$match": {
+                                                          "$expr": {
+                                                               "$and": [
+                                                                    {
+                                                                        "$eq": [ {"$toString":"$_id"}, "$$patientID" ]
+                                                                    }
+                                                                 
+                                                                    
+                                                                ]
+                                                          }
+                                                          }
+                                                      }
+                                              ],
+                    
+                                        "as": "data.patientData"
+                                    }}, 
+                                    {"$unwind": "$data.patientData"},  
+                                    {"$unwind": "$data.patientData.profiles"},  
+                                    { "$match": { "data.patientData.profiles._id": req.body.profileID }},
+                                    {"$unwind": "$data.patientData.serviceList"}, 
+                                    { "$match": { "data.patientData.serviceList._id": req.body.serviceID }},
+
+                                    {"$group": {_id:{obID: "$_id",
+                                                patientID:"$data.patientID"},
+                                                values:{$last:"$data.values"}}
+                                    },
+                                    {"$project":{
+                                        obID:'$_id.obID',
+                                        patientID:'$_id.patientID',
+                                        values:1
+                                    }},
+                                    {"$unwind": "$values"},    
+                                    {"$group": {_id:{values:"$values"},
+                                                count:{$sum:1}},
+                                    },     
+                                    {"$project":{
+                                        values:'$_id.values',
+                                      count:1,
+                                      _id:0
+                                       
+                                    }},  
+        
+        
+                                    
+        
+        
+                           
+             
+                     ];
+                    }
+        
+    else {
+                var pipeline= [
+                                        
+                                        //get detail of ob from category
+        
+                                        { "$match": { "_id": mongoose.Types.ObjectId(req.body.obID) }},
+                                     
+                                        //get value from data document
+                                        { "$lookup": {
+                                            "let": {"mappingLab": "$mappingLab"
+                                                   },
+                                            "from": "labs",
+                                            "pipeline":[
+                                                {"$match": 
+                            {"$expr": 
+                                {
+                                    "$and": [
+                                     {"$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
+                                     },
+                                   
+                                      {"$or":[
+                                          {"$and":[
+                                              //if framedays is grater than 0, meaning there is need to calculate days from treatment starting date adding frame days to evaluate the tratment outcome
+                                              {"$ne": [ req.body.procedureDate,null]},   
+                                              {"$gt": [ "$$mappingLab.frameDays",0]},
+                                                   {"$lte": [ {"$subtract":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                                            {"$divide":  [{"$subtract":
+                                                                [{"$toDate":"$resultAt"}, 
+                                                                {"$toDate":req.body.procedureDate} 
+                                                                ] },
+                                                            1000 * 3600 * 24 ]
+                                                            } ]
+                                                    },
+                                                    {"$gt": [ {"$add":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                                    {"$divide":  [{"$subtract":
+                                                        [{"$toDate":"$resultAt"}, 
+                                                        {"$toDate":req.body.procedureDate} 
+                                                        ] },
+                                                    1000 * 3600 * 24 ]
+                                                    } ]
+                                                }]
+                                            },
+                                       //to look backwards for the value within search days
+                                          {"$and":[{"$eq": [ "$$mappingLab.frameDays",0]},
+                                                    {"$gte": [ "$$mappingLab.searchDays",
+                                                             {"$divide":
+                                                                      [{"$subtract":
+                                                                              [{"$toDate":req.body.visitDate}, 
+                                                                              {"$toDate":"$resultAt"} 
+                                                                              ] },
+                                                                      1000 * 3600 * 24 
+                                                                      ]
+
+                                                                   }
+                                                             
+                                                                  ]
+                                                            }]
+                                            },
+                                        ]
+                                    },
+                                ]
+                                    
+                                }
+                            }
+                        }
+                                                  ],
+                      
+                                            "as": "data"
+                                        }},
+                                        { "$unwind": '$data' },
+
+                                     
+                                        {"$addFields": {
+                                            "data.values":
+                                            { "$cond": {
+                                                if :{"$and":[{"$ne": ["$data.value", null]},
+                                                             {"$in":["$type",["number", "mapping ob","mapping", "mapping lab"]]}
+                                                            ]
+                                                        },
+                                                then:{
+                                                 "$map":
+                                                    {
+                                                      input: "$options",
+                                                      as: "option",
+                                                      in: { "$cond": 
+                                                                { if:{ "$and":
+                                                                [{ $gte:[{"$toDecimal":"$data.value"}, "$$option.from" ] },
+                                                                { $lt: [{"$toDecimal":"$data.value"}, "$$option.to" ] }
+                                                                ]
+                                                                }, 
+                                                                then: "$$option",
+                                                                else:null
+                                                                }
+                                                            }
+                                                    }
+                                               },
+                                               else:  { "$cond": {
+                                                            if :{"$and":[
+                                                                        {"$eq":["$type","list"]}
+                                                                        ]
+                                                                    },
+                                                            then:{
+                                                            "$map":
+                                                                {
+                                                                input: "$options",
+                                                                as: "option",
+                                                                in: { "$cond": 
+                                                                    { if:{ "$and":
+                                                                            [{ "$in":["$$option.text", "$data.values" ] }
+                                                                            
+                                                                            ]
+                                                                            }, 
+                                                                            then: "$$option",
+                                                                            else:null
+                                                                            }
+                                                                        }
+                                                                }
+                                                        },
+                                                        else:[]
+                                                
+                                                    }
+                                        }
+                                                
+                                                }
+                                        }
+                                        }
+                                    },
+                                    { "$lookup": {
+                                        "let": {"patientID":"$data.patientID" },
+                                        "from": "users",
+                                        "pipeline":[
+                                            {
+                                                  "$match": {
+                                                          "$expr": {
+                                                               "$and": [
+                                                                    {
+                                                                        "$eq": [ {"$toString":"$_id"}, "$$patientID" ]
+                                                                    }
+                                                                 
+                                                                    
+                                                                ]
+                                                          }
+                                                          }
+                                                      }
+                                              ],
+                    
+                                        "as": "data.patientData"
+                                    }}, 
+                                    {"$unwind": "$data.patientData"},  
+                                    {"$unwind": "$data.patientData.profiles"},  
+                                    { "$match": { "data.patientData.profiles._id": req.body.profileID }},
+                                    {"$unwind": "$data.patientData.serviceList"}, 
+                                    { "$match": { "data.patientData.serviceList._id": req.body.serviceID }},
+
+                                    {"$group": {_id:{obID: "$_id",
+                                                patientID:"$data.patientID"},
+                                                values:{$last:"$data.values"}}
+                                    },
+                                    {"$project":{
+                                        obID:'$_id.obID',
+                                        patientID:'$_id.patientID',
+                                        values:1
+                                    }},
+                                    {"$unwind": "$values"},    
+                                    {"$group": {_id:{values:"$values"},
+                                                count:{$sum:1}},
+                                    },     
+                                    {"$project":{
+                                        values:'$_id.values',
+                                      count:1,
+                                      _id:0
+                                       
+                                    }},  
+        
+             
+                     ];
+                    }
+    
+
+                  Category.aggregate(
+                          pipeline,
+                         function(err, result)   {
+                         console.log ('_id',req.body)
+                         console.log ('result',result)
+                         if(err) {
+                             console.log(err);
+                         }
+                         else{
+                              res.json(result);
+                         }
+                     })
+                  
+         }
+           
 exports.getlabItems = function(req, res, next) {
 
     var labIDs=[];
@@ -800,12 +1393,14 @@ for (let profileID of req.body.profileIDs){
       
                             "as": "obSets_doc.obs_doc.patientData"
                         }},
+
+                        //to get last value
                         
-        {"$addFields": {
-            "obSets_doc.obs_doc.patientData":
-                { "$arrayElemAt": [ "$obSets_doc.obs_doc.patientData", -1 ] }
-         }
-       },
+                            {"$addFields": {
+                                "obSets_doc.obs_doc.patientData":
+                                    { "$arrayElemAt": [ "$obSets_doc.obs_doc.patientData", -1 ] }
+                            }
+                        },
                      
                         { "$lookup": {
                             "let": { "mappingLab":"$obSets_doc.obs_doc.mappingLab", 
@@ -1504,7 +2099,7 @@ exports.getFormById = function(req, res, next) {
                                                             
                                                         ]
                                                     },
-                                                   /* {
+                                                    {
                                                         "$and": [
                                                             {
                                                                 "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
@@ -1513,7 +2108,7 @@ exports.getFormById = function(req, res, next) {
                                                                 "$eq": [ "$patientID", "$$patientID" ]
                                                             },
                                                             {"$and":[{"$ne": [ req.body.procedureDate,null]},  
-                                                                    {"$gte": [ "$$mappingOb.frameDays",0]},
+                                                                    {"$gt": [ "$$mappingOb.frameDays",0]},
                                                                     {"$lte": [ {"$subtract":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
                                                                             {"$divide":  [{"$subtract":
                                                                                 [{"$toDate":req.body.visitDate}, 
@@ -1534,7 +2129,29 @@ exports.getFormById = function(req, res, next) {
                                                           
                                                             
                                                         ]
-                                                      },*/
+                                                      },
+                                                      {"$and":[
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                          {"$eq": [ "$$mappingOb.frameDays",0]},
+                                                          {"$gte": [ "$$mappingOb.searchDays",
+                                                               {"$divide":
+                                                                        [{"$subtract":
+                                                                                [{"$toDate":req.body.visitDate}, 
+                                                                                {"$toDate":"$resultAt"} 
+                                                                                ] },
+                                                                        1000 * 3600 * 24 
+                                                                        ]
+  
+                                                                     }
+                                                               
+                                                                    ]
+                                                              }]
+                                                        },
                                                       {
                                                         "$and": [
                                                             {
@@ -1572,7 +2189,9 @@ exports.getFormById = function(req, res, next) {
                     "patientID":"$obSets_doc.obs_doc.patientID" },
              "from": "labs",
              "pipeline":[
-                        {"$match": {"$expr": {
+                        {"$match": 
+                            {"$expr": 
+                                {
                                     "$and": [
                                      {"$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
                                      },
@@ -1580,7 +2199,7 @@ exports.getFormById = function(req, res, next) {
                                      },
                                       {"$or":[
                                           {"$and":[{"$ne": [ req.body.procedureDate,null]},  
-                                                   {"$gte": [ "$$mappingLab.frameDays",0]},
+                                                   {"$gt": [ "$$mappingLab.frameDays",0]},
                                                    {"$lte": [ {"$subtract":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
                                                             {"$divide":  [{"$subtract":
                                                                 [{"$toDate":"$resultAt"}, 
@@ -1589,7 +2208,7 @@ exports.getFormById = function(req, res, next) {
                                                             1000 * 3600 * 24 ]
                                                             } ]
                                                     },
-                                                    {"$gte": [ {"$add":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                                    {"$gt": [ {"$add":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
                                                     {"$divide":  [{"$subtract":
                                                         [{"$toDate":"$resultAt"}, 
                                                         {"$toDate":req.body.procedureDate} 
@@ -1615,7 +2234,7 @@ exports.getFormById = function(req, res, next) {
                                                   }
                                                 ]
                                           },
-                                          {"$and":[{"$eq": [ req.body.procedureDate,null]},
+                                          {"$and":[{"$eq": [ "$$mappingLab.frameDays",0]},
                                                     {"$gte": [ "$$mappingLab.searchDays",
                                                              {"$divide":
                                                                       [{"$subtract":

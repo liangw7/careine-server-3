@@ -67,7 +67,8 @@ exports.getPatientsByFilter = function(req, res, next) {
 
     console.log ('req.body.patientListID',req.body.patientListID)
     
-   Category.findById({ _id: mongoose.Types.ObjectId(req.body.patientListID) }).exec(function(err, patientList) {
+   Category.findById({ _id: mongoose.Types.ObjectId(req.body.patientListID) })
+   .exec(function(err, patientList) {
 
     if (err) throw err;
      
@@ -117,7 +118,8 @@ exports.getPatientsByFilter = function(req, res, next) {
         }},
         {"$unwind": "$patientData"},
         { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
-
+        { "$match": { "patientData.serviceList": {'$elemMatch' :{'_id':req.body.serviceID } }}},
+        
         {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
                     values:{$last:"$values"},
                     optionSums: {$push: '$optionSum'},
@@ -213,7 +215,7 @@ exports.getPatientsByFilter = function(req, res, next) {
             }},
             {"$unwind": "$patientData"},
             { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
-    
+            { "$match": { "patientData.serviceList": {'$elemMatch' :{'_id':req.body.serviceID } }}},
             {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
                         values:{$last:"$values"},
                         optionSums: {$push: '$optionSum'},

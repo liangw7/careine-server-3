@@ -1,4 +1,5 @@
 var Visit = require('../models/visit');
+const mongoose = require('mongoose');
 
 exports.getVisits = function(req, res, next) {
 
@@ -93,7 +94,33 @@ exports.getMonthlyVisits= function(req, res, next) {
 
     Visit.aggregate(
         [
-            {$match: {status: {$ne:'avail'}}},
+            {$match: {status: {$ne:'avail'}, providerID:{$ne:null}}},
+            { $lookup: {
+                "let": { "providerID": "$providerID" },
+                "from": "users",
+                "pipeline": [
+                { "$match": { "$expr":{'$or':[
+                                            { '$and':[
+                                                { "$eq": [ {"$toString":"$_id"}, '$$providerID' ] },
+                                                { "$eq": [ {"$toString":"$service._id"}, req.body.serviceID ] }
+                                            ],
+                                        },
+                                        { '$and':[
+                                          
+                                            { "$eq": [ {"$toString":"$_id"}, '$$providerID' ] },
+                                            { "$in": [ {"$toString":"$service._id"}, req.body.serviceIDs ] }
+                                        ]
+                                      }
+                                    ]
+                                }
+                  } 
+                }
+                ],
+                "as": "provider"
+            }},
+            {$unwind:'$provider'},
+           
+        
             {$group : { _id : { year : { $year : '$createdAt' }, month : { $month : '$createdAt' } }, count : { $sum : 1 }}},
             {$sort: {'_id.year':1, '_id.month':1}}
        
@@ -102,6 +129,8 @@ exports.getMonthlyVisits= function(req, res, next) {
         ],
        // cursor({ batchSize: 1000 }),
         function(err, result)	{
+            console.log ('req.body',req.body)
+            console.log ('result',result)
             if(err)	{
                 console.log(err);
             }

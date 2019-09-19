@@ -60,9 +60,11 @@ var UserSchema = new mongoose.Schema({
     activity: { type: Object },
     profiles:[],
     service: { type: Object },
+    marketPlace: { type: Object },
     providers:[],
     labs:[],
     serviceList:[],
+    marketList:[],
     allergyList:[],
     primaryProblem:{ type: Object },
     userID: {

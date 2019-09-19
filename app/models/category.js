@@ -72,6 +72,7 @@ var categorySchema = new mongoose.Schema({
     isOrderMaster:{
         type: String
     },
+   
     addLabs:{
         type: String
     },
