@@ -18,9 +18,9 @@ var labItemSchema = new mongoose.Schema({
     labType:{
         type: String
     },
-    synonyms:{
-        type: []
-    }
+    synonyms: [],
+    devices: []
+    
 
 }, {
     timestamps: true

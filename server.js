@@ -4,11 +4,27 @@ var mongoose = require('mongoose');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
 var cors = require('cors');
+const mysql = require('mysql');
 //var Image = require('./models/image');
 
 var databaseConfig = require('./config/database');
 var router = require('./app/routes');
-
+const mc = mysql.createConnection({
+    host: 'bj-cdb-qcpjo1zh.sql.tencentcdb.com',
+    user: 'AIoT',
+    port: '63182',
+    password: 'aiot3767',
+    database: 'AxiDB'
+});
+const mc_2 = mysql.createConnection({
+    host: 'bj-cdb-qcpjo1zh.sql.tencentcdb.com',
+    user: 'AIoT',
+    port: '63182',
+    password: 'aiot3767',
+    database: 'AxiService'
+});
+mc.connect();
+mc_2.connect();
 //mongoose.connect('mongodb://careline:alex2005@ds040017.mlab.com:40017/careline');
 console.log('mongo connecting...',process.env.MONGO_ATLAS_PW);
 mongoose.connect(databaseConfig.url);
@@ -32,7 +48,58 @@ app.use(bodyParser.urlencoded({ limit: "50mb", extended: true, parameterLimit: 5
 app.use(logger('dev')); // Log requests to API using morgan
 app.use(cors());
 
+app.get('/AxiDB/AxiDevice', function (req, res) {
+  
+    mc.query('SELECT * FROM AxiDevice', function (error, results, fields) {
+      
+        if (error) throw error;
+        return res.send({ error: false, data: results, message: 'Todos list.' });
+    });
+  
+});
 
+app.post('/AxiDB/deviceValue', function (req, res) {
+
+    var userID =req.body.userID
+  
+    mc.query('SELECT * FROM '+userID, function (error, results, fields) {
+     
+        if (error) throw error;
+        return res.send({ error: false, data: results, message: 'Todos list.' });
+    });
+    
+});
+app.post('/AxiDB/deviceValueByDevice', function (req, res) {
+
+    var userID =req.body.userID;
+    var devices=req.body.devices;
+    var deviceList=[];
+    for (let device of devices){
+            deviceList.push("'"+device.ID+"'");
+    }
+    console.log ('deviceList', deviceList)
+ 
+    var query="SELECT * FROM "+userID+" where deviceID in ("+ deviceList +")";
+  
+     
+     console.log ('query', query);
+
+    mc.query(query, function (error, results, fields) {
+     
+        if (error) throw error;
+        return res.send({ error: false, data: results, message: 'Todos list.' });
+    });
+    
+});
+app.get('/AxiService/UserTable', function (req, res) {
+
+    mc_2.query('SELECT * FROM UserTable', function (error, results, fields) {
+     
+        if (error) throw error;
+        return res.send({ error: false, data: results, message: 'Todos list.' });
+    });
+   
+});
 
 
 /*var storage = GridFsStorage({

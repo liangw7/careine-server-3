@@ -49,6 +49,7 @@ exports.getSummary = function(req, res, next) {
                                 ],
                                 "as": "obs_doc"
                             }},
+                          
                             { "$unwind": '$obs_doc'
                             },
             
@@ -88,13 +89,13 @@ exports.getSummary = function(req, res, next) {
                             { "$unwind": {
                                 "path":'$obs_doc.patientData',
                                 "preserveNullAndEmptyArrays": true
-                } },
-                { "$lookup": {
-                    "let": {"patientID":"$obs_doc.patientID",
-                            "visitID": "$obs_doc.patientData.visitID"},
-                    "from": "visits",
-                    "pipeline":[
-                        {
+                            } },
+                             { "$lookup": {
+                                "let": {"patientID":"$obs_doc.patientID",
+                                        "visitID": "$obs_doc.patientData.visitID"},
+                                "from": "visits",
+                                "pipeline":[
+                            {
                               "$match": {
                                       "$expr": {
                                           
@@ -240,7 +241,8 @@ exports.getSummary = function(req, res, next) {
                             obLabel: "$obs_doc.label",
                             obID:"$obs_doc._id",
                             obType:"$obs_doc.type",
-                            obIndex:"$obs_doc.index"
+                            obIndex:"$obs_doc.index",
+                            obDevices:"$obs_doc.devices"
 
                         },
                     valueSet: {$push:"$obs_doc.value"},
@@ -261,9 +263,11 @@ exports.getSummary = function(req, res, next) {
                         type:"$_id.obType",
                         index:'$_id.obIndex',
                         valueSet:"$valueSet", 
+                        devices:'$_id.obDevices',
                         valuesSet:"$valuesSet", 
                         timeSet:"$timeSet",
                         alertLevelSet:"$alertLevelSet",
+                     
                     },
                 }
             },
@@ -274,6 +278,7 @@ exports.getSummary = function(req, res, next) {
 {"$group": {_id:{_id: "$_id",
                 name:"$name",
                 label:"$label",
+               
                 patientID:req.body.patientID,},
                 
                 obs:{$push:"$obs"}
@@ -283,6 +288,7 @@ exports.getSummary = function(req, res, next) {
         _id:'$_id._id',
         name:'$_id.name',
         label:'$_id.label',
+      
         patientID:'$_id.patientID',
         obs:1
     }

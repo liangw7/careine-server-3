@@ -90,105 +90,209 @@ exports.getPatientsByFilter = function(req, res, next) {
             obList.push(selectedOb._id);
       
         }
-    var pipeline= [
-
-        {"$unwind": "$values"},
-        { "$match": { "values.text": {$exists:false } }},
-       { "$project": { 
-                        optionSum: { $concat: [ "$obID", "-", "$values" ] },
-                        patientID:1,
-                         obID:1,
-                         values:1
-
-        } 
-        },
-        { "$match": { "optionSum": {$in:optionSum } }},
-
-        { "$lookup": {
-            "let": { "patientID": "$patientID" },
-            "from": "users",
-            "pipeline": [
-            { "$match": { "$expr":{ '$and':[
-                                            { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
-                                          //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
-                                        ]}
-              } }
-            ],
-            "as": "patientData"
-        }},
-        {"$unwind": "$patientData"},
-        { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
-        { "$match": { "patientData.serviceList": {'$elemMatch' :{'_id':req.body.serviceID } }}},
         
-        {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
-                    values:{$last:"$values"},
-                    optionSums: {$push: '$optionSum'},
-                    count:{$sum:1}
-                }
-        },
-        { "$match": { "count": {"$gte":obCount } }},
-       
-        {"$project":{
-            patientID:'$_id.patientID',
-             values:1,
-            _id:0
-        }},
+    if (req.body.serviceID){
+        var pipeline= [
 
-        { "$lookup": {
-            "let": { "patientID": "$patientID" },
-            "from": "datas",
-            "pipeline": [
-            { "$match": { "$expr": { "$eq": [ "$patientID", "$$patientID" ] } } }
-            ],
-            "as": "patientData"
-        }},
-
-        {"$unwind": "$patientData"},
-      
-        { "$match": { "patientData.obID": {$in:obList} }},
-
-        {"$project":{
-            patientID:"$patientID",
-            email: '$patientData.patientEmail',
-            obID:'$patientData.obID',
-            selectedObs:{name:'$patientData.obName', value:'$patientData.value', values:'$patientData.values'}
-       
-        }},
-        {"$group": {_id:{patientID: "$patientID",email:"$email", obID:"$obID"},
-                   selectedObs: {$last: '$selectedObs'}
-                }
-        },
-        
-        {"$project":{
-            patientID:"$_id.patientID",
-            email: '$_id.email',
-            obID:'$_id.obID',
-            selectedObs:1
-       
-        }},
-        { "$sort" : { obID: 1 } },
-     {"$group": {_id:{patientID: "$patientID",email:"$email"},
-                   selectedObs: {$push: '$selectedObs'}
-                }
-        },
-        {"$project":{
-            patientID:"$_id.patientID",
-            email: '$_id.email',
+            {"$unwind": "$values"},
+            { "$match": { "values.text": {$exists:false } }},
+           { "$project": { 
+                            optionSum: { $concat: [ "$obID", "-", "$values" ] },
+                            patientID:1,
+                             obID:1,
+                             values:1
+    
+            } 
+            },
+            { "$match": { "optionSum": {$in:optionSum } }},
+    
+            { "$lookup": {
+                "let": { "patientID": "$patientID" },
+                "from": "users",
+                "pipeline": [
+                { "$match": { "$expr":{ '$and':[
+                                                { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
+                                              //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
+                                            ]}
+                  } }
+                ],
+                "as": "patientData"
+            }},
+            {"$unwind": "$patientData"},
+            { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
+            { "$match": { "patientData.serviceList": {'$elemMatch' :{'_id':req.body.serviceID } }}},
+            
+            {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
+                        values:{$last:"$values"},
+                        optionSums: {$push: '$optionSum'},
+                        count:{$sum:1}
+                    }
+            },
+            { "$match": { "count": {"$gte":obCount } }},
+           
+            {"$project":{
+                patientID:'$_id.patientID',
+                 values:1,
+                _id:0
+            }},
+    
+            { "$lookup": {
+                "let": { "patientID": "$patientID" },
+                "from": "datas",
+                "pipeline": [
+                { "$match": { "$expr": { "$eq": [ "$patientID", "$$patientID" ] } } }
+                ],
+                "as": "patientData"
+            }},
+    
+            {"$unwind": "$patientData"},
           
-            selectedObs:1,
-            _id:0
-       
-        }},
-        {"$project":{
-            _id:"$patientID",
-            email: '$email',
-            selectedObs:1
-        }},
-       
-        
-        ]       
+            { "$match": { "patientData.obID": {$in:obList} }},
+    
+            {"$project":{
+                patientID:"$patientID",
+                email: '$patientData.patientEmail',
+                obID:'$patientData.obID',
+                selectedObs:{name:'$patientData.obName', value:'$patientData.value', values:'$patientData.values'}
+           
+            }},
+            {"$group": {_id:{patientID: "$patientID",email:"$email", obID:"$obID"},
+                       selectedObs: {$last: '$selectedObs'}
+                    }
+            },
+            
+            {"$project":{
+                patientID:"$_id.patientID",
+                email: '$_id.email',
+                obID:'$_id.obID',
+                selectedObs:1
+           
+            }},
+            { "$sort" : { obID: 1 } },
+         {"$group": {_id:{patientID: "$patientID",email:"$email"},
+                       selectedObs: {$push: '$selectedObs'}
+                    }
+            },
+            {"$project":{
+                patientID:"$_id.patientID",
+                email: '$_id.email',
+              
+                selectedObs:1,
+                _id:0
+           
+            }},
+            {"$project":{
+                _id:"$patientID",
+                email: '$email',
+                selectedObs:1
+            }},
+           
+            
+            ]       
     }
+    else {
+        var pipeline= [
+
+            {"$unwind": "$values"},
+            { "$match": { "values.text": {$exists:false } }},
+           { "$project": { 
+                            optionSum: { $concat: [ "$obID", "-", "$values" ] },
+                            patientID:1,
+                             obID:1,
+                             values:1
+    
+            } 
+            },
+            { "$match": { "optionSum": {$in:optionSum } }},
+    
+            { "$lookup": {
+                "let": { "patientID": "$patientID" },
+                "from": "users",
+                "pipeline": [
+                { "$match": { "$expr":{ '$and':[
+                                                { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
+                                              //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
+                                            ]}
+                  } }
+                ],
+                "as": "patientData"
+            }},
+            {"$unwind": "$patientData"},
+            { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
+           
+            
+            {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
+                        values:{$last:"$values"},
+                        optionSums: {$push: '$optionSum'},
+                        count:{$sum:1}
+                    }
+            },
+            { "$match": { "count": {"$gte":obCount } }},
+           
+            {"$project":{
+                patientID:'$_id.patientID',
+                 values:1,
+                _id:0
+            }},
+    
+            { "$lookup": {
+                "let": { "patientID": "$patientID" },
+                "from": "datas",
+                "pipeline": [
+                { "$match": { "$expr": { "$eq": [ "$patientID", "$$patientID" ] } } }
+                ],
+                "as": "patientData"
+            }},
+    
+            {"$unwind": "$patientData"},
+          
+            { "$match": { "patientData.obID": {$in:obList} }},
+    
+            {"$project":{
+                patientID:"$patientID",
+                email: '$patientData.patientEmail',
+                obID:'$patientData.obID',
+                selectedObs:{name:'$patientData.obName', value:'$patientData.value', values:'$patientData.values'}
+           
+            }},
+            {"$group": {_id:{patientID: "$patientID",email:"$email", obID:"$obID"},
+                       selectedObs: {$last: '$selectedObs'}
+                    }
+            },
+            
+            {"$project":{
+                patientID:"$_id.patientID",
+                email: '$_id.email',
+                obID:'$_id.obID',
+                selectedObs:1
+           
+            }},
+            { "$sort" : { obID: 1 } },
+         {"$group": {_id:{patientID: "$patientID",email:"$email"},
+                       selectedObs: {$push: '$selectedObs'}
+                    }
+            },
+            {"$project":{
+                patientID:"$_id.patientID",
+                email: '$_id.email',
+              
+                selectedObs:1,
+                _id:0
+           
+            }},
+            {"$project":{
+                _id:"$patientID",
+                email: '$email',
+                selectedObs:1
+            }},
+           
+            
+            ]       
+      
+    }
+   }
     else{
+        if (req.body.serviceID){
         pipeline= [
             {"$unwind": "$values"},
             { "$match": { "values.text": {$exists:false } }},
@@ -249,7 +353,70 @@ exports.getPatientsByFilter = function(req, res, next) {
                 email:'$patient.email',
                 _id:'$patient._id',
             }},           
-         ]       
+         ] 
+        }
+        else {
+            pipeline= [
+                {"$unwind": "$values"},
+                { "$match": { "values.text": {$exists:false } }},
+               { "$project": { 
+                                optionSum: { $concat: [ "$obID", "-", "$values" ] },
+                                patientID:1,
+                                 obID:1,
+                                 values:1
+        
+                } 
+                },
+                { "$match": { "optionSum": {$in:optionSum } }},
+                { "$lookup": {
+                    "let": { "patientID": "$patientID" },
+                    "from": "users",
+                    "pipeline": [
+                    { "$match": { "$expr":{ '$and':[
+                                                    { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
+                                                  //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
+                                                ]}
+                      } }
+                    ],
+                    "as": "patientData"
+                }},
+                {"$unwind": "$patientData"},
+                { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
+               {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
+                            values:{$last:"$values"},
+                            optionSums: {$push: '$optionSum'},
+                            count:{$sum:1}
+                        }
+                },
+                { "$match": { "count": {"$gte":obCount } }},
+        
+               
+                {"$project":{
+                    patientID:'$_id.patientID',
+                     values:1,
+                    _id:0
+                }},
+                { "$lookup": {
+                    "let": { "patientID": "$patientID" },
+                    "from": "users",
+                    "pipeline": [
+                    { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, "$$patientID" ] } } }
+                    ],
+                    "as": "patient"
+                }},
+                {"$unwind": "$patient"},
+                {"$project":{
+                    _id:0
+                }}, 
+                {"$project":{
+                    name:'$patient.name',
+                    gender:'$patient.gender',
+                    birthday:'$patient.birthday',
+                    email:'$patient.email',
+                    _id:'$patient._id',
+                }},           
+             ] 
+        }      
         } 
     
 

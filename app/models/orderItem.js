@@ -15,7 +15,7 @@ var orderItemSchema = new mongoose.Schema({
        type: String
    },
    medsClass:{
-       type: String
+       type: Object
    },
    copyOrder:{
     type: []

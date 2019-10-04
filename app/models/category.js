@@ -135,7 +135,16 @@ var categorySchema = new mongoose.Schema({
     },
     route:{
         type: String
-    }
+    },
+    status:{
+        type: String
+    },
+    profileUrl:{
+        type: Object
+    },
+    devices:[]
+
+    
 
 }, {
     timestamps: true

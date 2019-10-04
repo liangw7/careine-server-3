@@ -39,7 +39,7 @@ var requireAuth = passport.authenticate('jwt', { session: false }),
 
 module.exports = function(app) {
 
-  
+   
 
     var apiRoutes = express.Router(),
         authRoutes = express.Router(),
