@@ -10,6 +10,12 @@ var UserSchema = new mongoose.Schema({
      //   unique: true
 
     },
+    weChatOpenID: {
+        type:String
+    },
+    weChatNickname: {
+        type:String
+    },
     deviceUserID:{
         type:String
     },
@@ -25,6 +31,9 @@ var UserSchema = new mongoose.Schema({
     },
     name:{
         type: String
+    },
+    enName:{
+        type:String
     },
     phone:{
         type: String
@@ -75,6 +84,21 @@ var UserSchema = new mongoose.Schema({
     primaryProblem:{ type: Object },
     userID: {
         type: String
+    },
+    status:{
+        type:String
+    },
+    title:{
+        type:String
+    },
+    enTitle:{
+        type:String
+    },
+    desc:{
+        type:String
+    },
+    enDesc:{
+        type:String
     },
     patientLists:[],
     screeningList:[],

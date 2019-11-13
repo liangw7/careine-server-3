@@ -1576,7 +1576,7 @@ for (let profileID of req.body.profileIDs){
                         obSetField: '$obSets_doc.field',
                         obSetName:'$obSets_doc.name',
                         obSetLabel:'$obSets_doc.label',
-                        obSetIndex:{"$toDecimal":'$obSets_doc.index'},
+                        obSetIndex:'$obSets_doc.index',
                         obSetID:'$obSets_doc._id',
                         obID:'$obSets_doc.obs_doc._id',
                         obName:'$obSets_doc.obs_doc.name',
@@ -1587,7 +1587,7 @@ for (let profileID of req.body.profileIDs){
                         obRequired: '$obSets_doc.obs_doc.required',
                         obType:'$obSets_doc.obs_doc.type',
                         obValue:'$obSets_doc.obs_doc.value',
-                        obIndex: {"$toDecimal":'$obSets_doc.obs_doc.index'},
+                        obIndex: '$obSets_doc.obs_doc.index',
                         obContext: '$obSets_doc.obs_doc.context',
                         obCalculationItems:'$obSets_doc.obs_doc.calculationItems',
                         obSingleSelection:'$obSets_doc.obs_doc.singleSelection'
@@ -2399,7 +2399,7 @@ exports.getFormById = function(req, res, next) {
                                 obSetField: '$obSets_doc.field',
                                 obSetName:'$obSets_doc.name',
                                 obSetLabel:'$obSets_doc.label',
-                                obSetIndex:{"$toDecimal":'$obSets_doc.index'},
+                                obSetIndex:'$obSets_doc.index',
                                 obSetID:'$obSets_doc._id',
                                 obID:'$obSets_doc.obs_doc._id',
                                 obName:'$obSets_doc.obs_doc.name',
@@ -2411,7 +2411,7 @@ exports.getFormById = function(req, res, next) {
                                 obMappingOb: '$obSets_doc.obs_doc.mappingOb',
                                 obType:'$obSets_doc.obs_doc.type',
                                 obValue:'$obSets_doc.obs_doc.value',
-                                obIndex: {"$toDecimal":'$obSets_doc.obs_doc.index'},
+                                obIndex: '$obSets_doc.obs_doc.index',
                                 obContext: '$obSets_doc.obs_doc.context',
                                 obCalculationItems:'$obSets_doc.obs_doc.calculationItems',
                                 obSingleSelection:'$obSets_doc.obs_doc.singleSelection'
@@ -2888,7 +2888,7 @@ exports.getUserForm = function(req, res, next) {
              obSetField: '$obSets_doc.field',
              obSetName:'$obSets_doc.name',
              obSetLabel:'$obSets_doc.label',
-             obSetIndex:{"$toDecimal":'$obSets_doc.index'},
+             obSetIndex:'$obSets_doc.index',
              obSetID:'$obSets_doc._id',
              obID:'$obSets_doc.obs_doc._id',
              obName:'$obSets_doc.obs_doc.name',
@@ -2898,7 +2898,7 @@ exports.getUserForm = function(req, res, next) {
      
              obType:'$obSets_doc.obs_doc.type',
              obValue:'$obSets_doc.obs_doc.value',
-             obIndex: {"$toDecimal":'$obSets_doc.obs_doc.index'},
+             obIndex: '$obSets_doc.obs_doc.index',
              obContext: '$obSets_doc.obs_doc.context',
              obCalculationItems:'$obSets_doc.obs_doc.calculationItems',
              obSingleSelection:'$obSets_doc.obs_doc.singleSelection'

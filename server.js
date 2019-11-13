@@ -91,6 +91,20 @@ app.post('/AxiDB/deviceValueByDevice', function (req, res) {
     });
     
 });
+
+app.post('/AxiDB/deviceValueByDeviceByFilter', function (req, res) {
+
+    var query =req.body.query;
+   console.log ('query', query);
+
+    mc.query(query, function (error, results, fields) {
+     
+        if (error) throw error;
+        return res.send({ error: false, data: results, message: 'Todos list.' });
+    });
+    
+});
+
 app.get('/AxiService/UserTable', function (req, res) {
 
     mc_2.query('SELECT * FROM UserTable', function (error, results, fields) {
