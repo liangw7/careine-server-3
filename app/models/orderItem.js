@@ -8,6 +8,9 @@ var orderItemSchema = new mongoose.Schema({
     internalName: {
         type: String
     },
+    medicationName:{
+        type: String
+    },
     label:{
         type: Object
     },
@@ -51,6 +54,9 @@ var orderItemSchema = new mongoose.Schema({
     items:{
         type:[]
     },
+    options:{
+        type:[]
+    },
     obs:{
         type:[]
     },
@@ -65,6 +71,9 @@ var orderItemSchema = new mongoose.Schema({
     },
     educations:{
         type:[]
+    },
+    validDays:{
+        type:Number
     }
 }, {
     timestamps: true

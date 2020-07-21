@@ -1,5 +1,5 @@
 var Med = require('../models/med');
-
+const mongoose = require('mongoose');
 exports.get = function(req, res, next) {
 
     Med.find(function(err, Meds) {
@@ -57,7 +57,7 @@ exports.getByFilter = function(req, res, next) {
 exports.getPatientmedications = function(req, res, next) {
 
     var  pipeline= [      
-          { "$match": { "patientID": req.body.patientID }},
+          { "$match": { "patientID":{'$in':[req.body.patientID ]}}},
          
           { 
             "$lookup": {
@@ -91,7 +91,7 @@ exports.getPatientmedications = function(req, res, next) {
                    
       { 
         "$lookup": {
-                        "let": { "medicationItemID": "$medicationItemID", 
+                        "let": { "medicationItemID": "$medicationItem._id", 
                                 'obsID':'$medicationItem.obs._id' },
                         "from": "datas",
                         "pipeline": [
@@ -203,6 +203,7 @@ exports.getPatientmedications = function(req, res, next) {
   {
       "$group":{'_id':{
                   _id:'$_id',
+                  status:'$status',
                   name:'$medicationItem.name',
                   label:'$medicationItem.label',
                   medicationItemID:'$medicationItem._id',
@@ -234,6 +235,7 @@ exports.getPatientmedications = function(req, res, next) {
   {
       '$project':{
           _id:'$_id._id',
+          status:'$_id.status',
           name:'$_id.name',
           label:'$_id.label',
           medicationItemID:'$_id.medicationItemID',
@@ -252,9 +254,11 @@ exports.getPatientmedications = function(req, res, next) {
 
       }
   },
+  { '$sort' : { 'ob.index': 1 } },
   {
       "$group":{
           _id:{_id:'$_id',
+              status:'$status',
               name:'$name',
               label:'$label',
               medicationItemID:'$medicationItemID',
@@ -315,13 +319,12 @@ exports.getPatientmedications = function(req, res, next) {
         _id:'$_id._id',
         name:'$_id.name',
         label:'$_id.label',
+        status:'$_id.status',
         medicationItemID:'$_id.medicationItemID',
         obs:1
     }},  
 
-
-    
-        ]
+    ]
             Med.aggregate(
                      pipeline,
                     function(err, result)   {

@@ -14,7 +14,53 @@ exports.getVisits = function(req, res, next) {
     });
 
 }
+exports.getFollowupsByDate  = function(req, res) {
 
+    var pipeline= [
+
+        { "$match": { '$expr': {
+                        '$and': [
+                            {
+                                "$gt": [{'$toDate':'$visitDate'}, 
+                                        {'$toDate':req.body.selectedStart}
+                                      ]
+                               },
+                               {
+                                "$gt": [{'$toDate':req.body.selectedEnd}, 
+                                        {'$toDate':'$visitDate'}
+                                      ]
+                               },
+                              
+                          { "$eq": ['$type', 'followup']},
+                          { "$eq": ['$desc', 'monitor']},
+                          { "$eq": [{'$toString':'$patientID'}, 
+                          {'$toString':req.body.patientID}
+                          ] }
+                        ]
+                      }
+                    }
+                },
+                { '$sort' : {'visitDate' : -1 } }
+     
+        
+
+        
+  ];
+  Visit.aggregate(
+    pipeline,
+  
+   // cursor({ batchSize: 1000 }),
+    function(err, result)	{
+        console.log ('req.body',req.body)
+        if(err)	{
+            console.log(err);
+        }
+        else	{
+            res.json(result);
+        }
+    });
+   
+}
 
 exports.getVisitsByPatient = function(req, res, next) {
 
@@ -143,27 +189,140 @@ exports.getMonthlyVisits= function(req, res, next) {
 }
 exports.getVisitsByProvider = function(req, res, next) {
 
-    Visit.find({ providerID: req.params.providerID }, function(err, data) {
-        if (err) {
-            res.send(err);
+    var pipeline= [
+
+        //find provider
+
+        {'$match': {'provider.profiles': {'$elemMatch':{'_id':{'$in':req.body.profileIDs}}}}},
+
+        //find right time phrame
+
+        { "$match": { '$expr': {
+                        '$and': [
+                         
+                          { "$eq": ['$availableAtYear', req.body.availableAtYear]},
+                          { "$eq": ['$availableAtMonth', req.body.availableAtMonth]},
+                          { "$eq": ['$availableAtDate',req.body.availableAtDate]}, 
+                          {'$or':  [{ "$eq": ['$status','avail']},
+                                    {"$and":[{ "$eq": ['$status','reserved']},
+                                            { "$eq": ['$patientID',req.body.patientID]}
+                                            ]}
+                                
+                                    
+                                    
+                         
+                          ] }
+                        ]
+                       
+                    }
+                }
+            },
+          
+        {'$addFields':{
+                        'visit' : { 'availableAtYear': "$availableAtYear",
+                                    'availableAtMonth': "$availableAtMonth",
+                                    'availableAtDate': "$availableAtDate",
+                                    'availableAtHours': "$availableAtHours", 
+                                    'availableAtMinutes':"$availableAtMinutes",
+                                    'patient':'$patient',
+                                    'patientID':'$patientID',
+                                    'status': "$status",
+                                    'type':"$type",
+                                    'enType':"$enType", 
+                                    'createdAt':"$createdAt",
+                                    "_id":"$_id"
+                                }
+                        }
+                    },
+                 
+        //group by provider
+      //  { "$unwind": "$provider.profiles"},
+        {"$group":{
+                    "_id": 
+                            {
+                            "providerID":"$provider._id",
+                            "providerName":"$provider.name",
+                            "providerTitle":"$provider.title",
+                            "providerPhoto":"$provider.photo",
+                           // "providerProfiles":"$provider.profiles",
+                         
+                           
+
+
+                            },
+                    "providerVisits":{"$push":"$visit"},
+                   
+                  }
+      
+
+                  
+        },
+{"$project":{
+    "provider":
+            {'_id':"$_id.providerID",
+            'name':"$_id.providerName",
+            'title':"$_id.providerTitle",
+            'photo':"$_id.providerPhoto"
+           // 'profiles':"$_id.providerProfiles",
+         
+            
+            },
+    "profiles":1,
+    "providerVisits":1,
+    "_id":0
+}}
+
+      
+
+
+
+
+  ];
+  Visit.aggregate(
+    pipeline,
+  
+   // cursor({ batchSize: 1000 }),
+    function(err, result)	{
+        console.log ('req.body',req.body)
+        if(err)	{
             console.log(err);
-
         }
-        res.json(data);
-
-        var _send = res.send;
-        var sent = false;
-        res.send = function(data) {
-            if (sent) return;
-            _send.bind(res)(data);
-            sent = true;
-        };
-        next();
-
+        else	{
+            res.json(result);
+        }
     });
 
 }
 
+exports.getMonthlyVisitsByProvider = function(req, res, next) {
+
+    var pipeline=   [   
+        { $match: {providerID:req.body.providerID,
+                   visitDate: { $gte: new Date((new Date().getTime() - (req.body.months * 24 * 60 * 60 * 1000))) }
+                  } },
+        {$group : { _id : { year : { $year : '$visitDate' }, month : { $month : '$visitDate' } }, count : { $sum : 1 }}},
+        {$sort: {'_id.year':1, '_id.month':1}}
+   
+ 
+    ];
+
+
+
+
+Visit.aggregate(
+    pipeline,
+   // cursor({ batchSize: 1000 }),
+    function(err, result)	{
+        if(err)	{
+            console.log(err);
+        }
+        else	{
+            res.json(result);
+        }
+    });
+   
+
+}
 exports.getVisitsByRequester = function(req, res, next) {
 
     Visit.find({ requesterID: req.params.requesterID }, function(err, data) {

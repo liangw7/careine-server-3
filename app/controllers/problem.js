@@ -95,7 +95,7 @@ exports.Create = function(req, res, next) {
 exports.getPatientProblems = function(req, res, next) {
 
     var  pipeline= [      
-          { "$match": { "patientID": req.body.patientID }},
+          { "$match": { "patientID": req.body.patientID}},
          
           { 
             "$lookup": {
@@ -103,7 +103,8 @@ exports.getPatientProblems = function(req, res, next) {
                       "let": { "problemItemID": "$problemItemID" },
                               "from": "categories",
                               "pipeline": [
-                              { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$problemItemID"} ] } } }
+                              { "$match": { "$expr": 
+                                { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$problemItemID"} ] } } }
                               ],
                               "as": "problemItem"
                           
@@ -152,6 +153,8 @@ exports.getPatientProblems = function(req, res, next) {
                                                     },
                                                     { "$eq": [ "$familyMember", null]
                                                     },
+                                                    { "$eq": [ "$familyMember", 'self']
+                                                },
                                                 ]
                                                }
                                                   
@@ -259,6 +262,7 @@ exports.getPatientProblems = function(req, res, next) {
                   familyMembers:'$familyMembers',
                   obID:'$problemItem.obs._id',
                   obName:'$problemItem.obs.name',
+                  obLabel:'$problemItem.obs.label',
                   obSingleSelection:'$problemItem.obs.singleSelection',
                   obType:'$problemItem.obs.type',
                   obOptions:'$problemItem.obs.options',
@@ -294,6 +298,7 @@ exports.getPatientProblems = function(req, res, next) {
           familyMembers:'$_id.familyMembers',
           ob:{_id:'$_id.obID',
               name:'$_id.obName',
+              label:'$_id.obLabel',
               index:'$_id.obIndex',
               singleSelection:'$_id.obSingleSelection',
               type:'$_id.obType',
@@ -389,7 +394,7 @@ exports.getPatientProblems = function(req, res, next) {
                         console.log(err);
                     }
                     else{
-                         res.json(result);
+                       res.json(result);
                     }
                 })
             

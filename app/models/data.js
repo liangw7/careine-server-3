@@ -54,9 +54,16 @@ var dataSchema = new mongoose.Schema({
     value: {
         type: String
     },
+    uom: {
+        type: String
+    },
     values: {
         type: []
-    }
+    },
+    visitDate:{
+        type:Date
+    },
+    
 }, {
     timestamps: true
 });

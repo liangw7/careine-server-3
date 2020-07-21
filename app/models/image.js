@@ -18,7 +18,7 @@ var ImageSchema = new mongoose.Schema({
     patientID: {
         type: String
     },
-    visitId: {
+    visitID: {
         type: String
     },
     orderId: {
@@ -28,6 +28,9 @@ var ImageSchema = new mongoose.Schema({
         type: String
     },
     obSetID:{
+        type: String
+    },
+    obID:{
         type: String
     },
     displayName: {

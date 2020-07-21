@@ -29,14 +29,41 @@ var AuthenticationController = require('./controllers/authentication'),
     var path = require('path');
     const fs = require('fs')
     const { promisify } = require('util')
-    
+    const https = require("https");
+    const request = require("request");
     const unlinkAsync = promisify(fs.unlink)
     var multer = require('multer');
+    const {Wechat} = require('wechat-jssdk');
+    const { WechatClient } = require('messaging-api-wechat');
+    const wechatConfig={
+        //set your oauth redirect url, defaults to localhost
+        "wechatRedirectUrl": "https://www.digitalbaseas.com/wechat/oauth-callback",
+        //"wechatToken": "wechat_token", //not necessary required
+        "appId":  'wx1456c566ec3e6686',
+        "appSecret": '8ada6bb8a95c8d79abf7a374688aa9cd',
+        card: true, //enable cards
+     //   payment: true, //enable payment support
+     //   merchantId: '', //
+      //  paymentSandBox: true, //dev env
+      //  paymentKey: '', //API key to gen payment sign
+      //  paymentCertificatePfx: fs.readFileSync(path.join(process.cwd(), 'cert/apiclient_cert.p12')),
+        //default payment notify url
+      //  paymentNotifyUrl: `http://your.domain.com/api/wechat/payment/`,
+        //mini program config
+       // "miniProgram": {
+       //   "appId": "mp_appid",
+        //  "appSecret": "mp_app_secret",
+       // }
+      }
+      const wx = new Wechat(wechatConfig);
 
-var roleList=['admin', 'provider', 'patient', 'market','specialist'];
-var requireAuth = passport.authenticate('jwt', { session: false }),
-    requireLogin = passport.authenticate('local', { session: false });
+var roleList=['admin', 'provider', 'market'];
 
+var requireAuth = passportService.authenticateJWT,
+   requireLogin = passportService.authenticateCredentials;
+   // var requireAuth = passportService.authenticate('jwt', { session: false }),
+   //     requireLogin = passportService.authenticate('local', { session: false });
+//console.log ('requireAuth',requireAuth)
 module.exports = function(app) {
 
    
@@ -67,16 +94,31 @@ module.exports = function(app) {
         problemRoutes = express.Router();
         uploadDataRoutes = express.Router();
         uploadRoutes=express.Router();
+        tttRoutes=express.Router();
+
+
         // Auth Routes
-        apiRoutes.use('/auth', authRoutes);
-
-        authRoutes.post('/register', AuthenticationController.register);
-        authRoutes.post('/login', requireLogin, AuthenticationController.login);
-
-        authRoutes.get('/protected', requireAuth, function(req, res) {
-            res.send({ content: 'Success' });
+    apiRoutes.use('/auth', authRoutes);
+    authRoutes.post('/register', AuthenticationController.register);
+    authRoutes.post('/login', requireLogin , AuthenticationController.login);
+    authRoutes.get('/protected', requireAuth, function(req, res) {
+     // console.log ('requireAuth',requireAuth)
+        res.send({ content: 'Success' });
         });
    //upload routes
+       
+ 
+
+   apiRoutes.use('/ttt', tttRoutes);
+  // console.log ('here api test')
+   tttRoutes.get('/', function (req, res) {
+  
+
+    res.send('Hello World\n');
+   
+});
+
+//app.use('/ttt',tttRoutes)
         apiRoutes.use('/upload', uploadRoutes);
 
        
@@ -85,6 +127,7 @@ module.exports = function(app) {
         uploadRoutes.get('/', function (req, res) {
             res.end('file catcher example');
         });
+
 
         uploadRoutes.get('/:filename', function( req, res, next){
 
@@ -118,7 +161,7 @@ module.exports = function(app) {
               cb(null, DIR);
             },
             filename: (req, file, cb) => {
-                console.log ('file', file.fieldname);
+             //  console.log ('file', file.fieldname);
               cb(null, file.fieldname + '-' + file.originalname);
             }
         });
@@ -156,10 +199,13 @@ module.exports = function(app) {
     visitRoutes.delete('/:visitID',  VisitController.deleteVisit);
     visitRoutes.post('/patient', VisitController.getVisitsByPatient);
     visitRoutes.post('/filter',  VisitController.getVisitsByFilter);
-    visitRoutes.get('/provider/:providerID', VisitController.getVisitsByProvider);
+    visitRoutes.post('/provider', VisitController.getVisitsByProvider);
     visitRoutes.get('/requester/:requesterID',  VisitController.getVisitsByRequester);
     visitRoutes.post('/update', VisitController.UpdateVisit);
     visitRoutes.post('/monthlyVisits', VisitController.getMonthlyVisits);
+    visitRoutes.post('/getFollowupsByDate', VisitController.getFollowupsByDate);
+    
+    visitRoutes.post('/getMonthlyVisitsByProvider', VisitController.getMonthlyVisitsByProvider);
   // Diagnosis Routes
     apiRoutes.use('/diagnosis', diagnosisRoutes);    
     diagnosisRoutes.get('/', DiagnosisController.getAllDiagnosis);
@@ -178,7 +224,130 @@ module.exports = function(app) {
     mailRoutes.post('/filter',  MailController.getByFilter);
     mailRoutes.get('/mailId',  MailController.getById);
     mailRoutes.post('/update',  MailController.Update);
+    mailRoutes.post('/getPatientMails',  MailController.getPatientMails);
 
+  /* mailRoutes.post('/message', function(req,resp){
+     //   console.log ('req.body.wechatID',req.body.wechatID)
+        var filter={wechatID:"liangw7",
+        appID:req.body.appID,//"wx1456c566ec3e6686",
+        appSecret:req.body.appSecret//"8ada6bb8a95c8d79abf7a374688aa9cd"
+       };
+        const wclient = WechatClient.connect({
+            appId: filter.appID,
+            appSecret: filter.appSecret,
+          });
+          
+          wclient.sendText(filter.wechatID, 'this is a test').catch(error => {
+            console.log(error); // formatted error message
+            //console.log(error.stack); // error stack trace
+            //console.log(error.config); // axios request config
+            //console.log(error.request); // HTTP request
+            console.log(error.response); // HTTP response;
+        });
+    })*/
+    
+    mailRoutes.post('/message', function(req,resp){
+
+        var tokenUrl = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='
+             +req.body.appID+'&secret='+req.body.appSecret;
+        https.get(tokenUrl, res => {
+                res.setEncoding("utf8");
+                let body = "";
+                res.on("data", data => {
+                  body += data;
+                });
+                res.on("end", () => {
+                  body = JSON.parse(body);
+                  console.log('wechat access',body);
+                  var weCharUrl='https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token='
+                  +body.access_token;
+                  console.log ('weCharUrl============================================', weCharUrl)
+                  var postData={touser:req.body.openID,
+                                  msgtype:"text",
+                                  text:{content:req.body.message}
+                              };
+          
+                  var options = {
+                      method: 'post',
+                      body: postData, // Javascript object
+                      json: true, // Use,If you are sending JSON data
+                      url: weCharUrl,
+                      headers: {
+                        // Specify headers, If any
+                      }
+                    }
+                    
+                    request(options, function (err, res, body) {
+                        console.log ('message option', options)
+                      if (err) {
+                        console.log('Error :', err)
+                        return
+                      }
+                      console.log(' Body :', body)
+                       
+                    });
+                  
+                });
+            })     
+        
+         });
+  
+    mailRoutes.post('/messageLink', function(req,resp){
+
+    var tokenUrl = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='
+          +req.body.appID+'&secret='+req.body.appSecret;
+    https.get(tokenUrl, res => {
+            res.setEncoding("utf8");
+            let body = "";
+            res.on("data", data => {
+              body += data;
+            });
+            res.on("end", () => {
+              body = JSON.parse(body);
+              console.log('wechat access',body);
+              var weCharUrl='https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token='
+              +body.access_token;
+              console.log ('weCharUrl============================================', weCharUrl)
+              var postData={touser:req.body.openID,
+                              msgtype:"news",
+                              news:{
+                                articles: [
+                                 {
+                                     title:req.body.title,
+                                     description:req.body.message,
+                                     url:req.body.url,
+                                     picurl:req.body.picUrl,
+                                 }
+                                 ]
+                            }
+                          };
+                        
+      
+              var options = {
+                  method: 'post',
+                  body: postData, // Javascript object
+                  json: true, // Use,If you are sending JSON data
+                  url: weCharUrl,
+                  headers: {
+                    // Specify headers, If any
+                  }
+                }
+                
+                request(options, function (err, res, body) {
+                    console.log ('message option', options)
+                  if (err) {
+                    console.log('Error :', err)
+                    return
+                  }
+                  console.log(' Body :', body)
+                    
+                });
+              
+            });
+        })     
+    
+      });
+      //   POST "https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=30_fCvQpHlNUuuW4XFluNRGIxHkV_QsAy3LviPfrh-_ZFoCzTT2q8t72aklw7PCT9mOnzIBhffh99vqc6B1RezrKGq2Vft09x8ewWuEwslOnE24L52cqH9ReZNYjf3zzdmRF97PhSkMISq_LgXOXMObAFASHJ" -d '{"touser":"oN_YY01eqorRQ5_TFbUDEcM6yYx8","msgtype":"text","text":{"content":"Hello World"}}'
      // Problem Routes
      apiRoutes.use('/problem', problemRoutes);    
      problemRoutes.get('/',  ProblemController.getAllProblem);
@@ -187,8 +356,8 @@ module.exports = function(app) {
      problemRoutes.post('/filter',  ProblemController.getByFilter);
      problemRoutes.get('/id',  ProblemController.getById);
      problemRoutes.post('/update',   ProblemController.Update);
-     
      problemRoutes.post('/getPatientProblems',   ProblemController.getPatientProblems);
+  
 
           //OrderItem Routes
           apiRoutes.use('/orderItem', orderItemRoutes);    
@@ -200,7 +369,9 @@ module.exports = function(app) {
           orderItemRoutes.post('/update',   OrderItemController.Update);
           orderItemRoutes.post('/getMedicationForm',   OrderItemController.getMedicationForm);
           orderItemRoutes.post('/getItems',   OrderItemController.getItems);
-          
+          orderItemRoutes.post('/getMedications',   OrderItemController.getMedications);
+          orderItemRoutes.post('/checkDuplication',   OrderItemController.checkDuplication);
+      
           
             //LabItem Routes
             apiRoutes.use('/labItem', labItemRoutes);    
@@ -279,10 +450,11 @@ module.exports = function(app) {
     pathwayRoutes.post('/update',  PathwayController.UpdatePathway);
   
     // User Routes
+   // requireAuth,AuthenticationController.roleAuthorization(roleList),
     apiRoutes.use('/users', userRoutes);
-    userRoutes.get('/',  UserController.getUsers);
+    userRoutes.get('/', requireAuth, UserController.getUsers);
     userRoutes.get('/:User_id',  UserController.getUserById);
-    userRoutes.post('/', UserController.createUser);
+    userRoutes.post('/',UserController.createUser);
     userRoutes.get('/role/:role', UserController.getUsersByRole);
     userRoutes.post('/profile', UserController.getUsersByProfile);
     userRoutes.post('/filter', UserController.getByFilter);
@@ -296,11 +468,98 @@ module.exports = function(app) {
     userRoutes.post('/getlabItems',  UserController.getlabItems);
     userRoutes.post('/update',  UserController.updateUser);
     userRoutes.post('/getCountByService',  UserController.getCountByService);
+    userRoutes.post('/getMonthlyPatientsByProvider',  UserController.getMonthlyPatientsByProvider);
+    userRoutes.delete('/:User_id', UserController.deleteUser);
+    userRoutes.post('/getProviderMails',  UserController. getProviderMails);
+    userRoutes.post('/getPatientMails',  UserController. getPatientMails);
+    userRoutes.post('/getVisitsByProvider',  UserController.getVisitsByProvider);
+    
+    userRoutes.post('/getPatientMailsFromProviders',  UserController. getPatientMailsFromProviders);
+    
     
 
-    userRoutes.delete('/:User_id', UserController.deleteUser);
+    userRoutes.post('/wechat', function(req,resp){
+        console.log ('wechat access================================================')
+       var weCharUrl='https://api.weixin.qq.com/sns/oauth2/access_token?appid='
+        +req.body.appID+'&secret='+req.body.appSecret+'&code='+req.body.code+'&grant_type=authorization_code';
+        
+        https.get(weCharUrl, res => {
+          res.setEncoding("utf8");
+          let body = "";
+          res.on("data", data => {
+            body += data;
+          });
+          res.on("end", () => {
+            body = JSON.parse(body);
+            console.log('wechat access',body);
+            resp.json(body);
+            
+          });
+      })
+    });
+  
+    userRoutes.post('/signature', (req, res) => {
+//console.log ('wx',wx)
+        wx.jssdk.getSignature(req.body.url).then(signatureData => {
+           // console.log('req.query.url',req.body.url) 
+           // console.log('signatureData',signatureData) 
+          res.json(signatureData);
+        });
+      });
+    userRoutes.post('/wechatUserInfor', function(req,resp){
+       var weCharUrl='https://api.weixin.qq.com/sns/userinfo?access_token='
+       +req.body.accessToken+'&openid='+req.body.openID
+            https.get(weCharUrl, res => {
+              res.setEncoding("utf8");
+              let body = "";
+              res.on("data", data => {
+                body += data;
+              });
+              res.on("end", () => {
+                body = JSON.parse(body);
+              //  console.log(body);
+                resp.json(body);
+                
+              });
+          })
+        });
+       
+    userRoutes.post('/wechatLink', function(req,resp){
+        var tokenUrl = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='
+             +req.body.appID+'&secret='+req.body.appSecret;
+                https.get(tokenUrl, res => {
+                   res.setEncoding("utf8");
+                   let body = "";
+                   res.on("data", data => {
+                     body += data;
+                   });
+                   res.on("end", () => {
+                     body = JSON.parse(body);
+                   //  console.log(body);
+                     resp.json(body);
+                     
+                   });
+               })
+        });
+    userRoutes.post('/wechatTicket', function(req,resp){
+        var ticketUrl = 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=' 
+        + req.body.accessToken + '&type=jsapi';
 
-    // MedicalHistory Routes
+                https.get(ticketUrl, res => {
+                    res.setEncoding("utf8");
+                    let body = "";
+                    res.on("data", data => {
+                        body += data;
+                    });
+                    res.on("end", () => {
+                        body = JSON.parse(body);
+                       // console.log(body);
+                        resp.json(body);
+                        
+                    });
+                })
+        });             
+ // MedicalHistory Routes
     apiRoutes.use('/MedicalHistory', MedicalHistoryRoutes);
     MedicalHistoryRoutes.get('/:_id',  MedicalHistoryController.getById);
     MedicalHistoryRoutes.post('/patient',  MedicalHistoryController.getByPatient);
@@ -382,6 +641,7 @@ module.exports = function(app) {
     CategoryRoutes.post('/getlabItems', CategoryController.getlabItems);
     CategoryRoutes.post('/getUserForm', CategoryController.getUserForm);
     CategoryRoutes.post('/getFormById', CategoryController.getFormById);
+    CategoryRoutes.post('/bulk', CategoryController.CreateMany);
   
     // Request Routes
     apiRoutes.use('/Requests', RequestRoutes);
@@ -400,6 +660,7 @@ module.exports = function(app) {
     imageRoutes.delete('/:imageId',  ImageController.delete);
     imageRoutes.post('/filter', ImageController.getByFilter);
     imageRoutes.post('/',   ImageController.create);
+    imageRoutes.post('/update',   ImageController.update);
     //labs Routes
     apiRoutes.use('/labs', labRoutes);
    // labRoutes.post('/upload',  LabController.uploadLab);
@@ -412,6 +673,7 @@ module.exports = function(app) {
     labRoutes.post('/filter',  LabController.getByFilter);
     // Set up routes
 
+    
     app.use('/api', apiRoutes);
     /* var multer = require('multer');
      var storage = multer.diskStorage({

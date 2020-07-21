@@ -31,7 +31,38 @@ exports.getById = function(req, res, next) {
     });
 
 }
+exports.getMedications = function(req, res, next) {
 
+   
+      pipeline= [
+                   { "$match": { "orderType": 'medication'}},
+                   {"$group": {_id:{medicationName:"$medicationName"},
+                              count:{$sum:1}},
+                   },
+           
+       
+                    {"$project":{
+                       
+                        medicationName:'$_id.medicationName',
+                       
+                    }},
+                                        
+                ];
+                    
+            OrderItem.aggregate(
+                     pipeline,
+                    function(err, result)   {
+                   
+                    if(err) {
+                        console.log(err);
+                    }
+                    else{
+                         res.json(result);
+                    }
+                })
+            
+    
+} 
 exports.getMedicationForm = function(req, res, next) {
 
     var patientType='patient';
@@ -63,6 +94,7 @@ exports.getMedicationForm = function(req, res, next) {
                                 { 
                                 'addsIn':'$obs.addsIn',
                                 'index':'$obs.index',
+                                'singleSelection':'$obs_doc.singleSelection',
                                 'name':'$obs.name',
                                 'label':'$obs_doc.label',
                                  'options':'$obs_doc.options',
@@ -72,7 +104,8 @@ exports.getMedicationForm = function(req, res, next) {
                                   'values':[]
                                
                                 }
-                             }
+                             },
+                             { '$sort' : { 'index': 1 } },
 
 ];
                     
@@ -90,7 +123,68 @@ exports.getMedicationForm = function(req, res, next) {
                 })
             
     
-} 
+}
+
+exports.checkDuplication= function(req, res, next) {
+
+    //  var orderIDs=[];
+    //  for (let orderID of req.body.orderIDs){
+    //      orderIDs.push(mongoose.Types.ObjectId(orderID));
+    //  };
+    var activeStatus='active';
+      pipeline= [
+          { "$match": { "_id": mongoose.Types.ObjectId(req.body.orderID)}},
+       
+        { "$lookup": {
+            "let": {"orderItemID":"$_id","validDays":"$validDays" },
+            "from": "orders",
+            "pipeline": [
+            { "$match": { "$expr": {"$and":
+                            [   {"$eq":["$status",activeStatus]},
+                                {"$eq":["$patientID",req.body.patientID]},
+                               
+                                { "$eq": [ "$orderItemID",{"$toString":"$$orderItemID"}] },
+                                {"$lte": [ 
+                                    {"$divide":
+                                                [{"$subtract":
+                                                        [{"$toDate":req.body.visitDate}, 
+                                                        {"$toDate":"$createdAt"} 
+                                                        ] },
+                                                1000 * 3600 * 24 
+                                                ]
+
+                                            },
+                                      "$$validDays"
+                                    
+                                            ]
+                                    }
+                            ]
+                        }
+                    } }
+            ],
+            "as": "activeOrders"
+        }},
+         
+      
+  
+  ];
+           
+       OrderItem.aggregate(pipeline,
+            // cursor({ batchSize: 1000 }),
+         
+             function(err, result)	{
+                console.log ('req.body',req.body)
+
+                 if(err)	{
+                     console.log(err);
+                 }
+                 else	{
+                     res.json(result);
+                 }
+             });
+            
+     
+     }
 exports.getItems = function(req, res, next) {
     var orderItemID=mongoose.Types.ObjectId(req.body.orderItemID);
 

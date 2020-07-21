@@ -131,3 +131,15 @@ exports.create = function(req, res, next) {
         });
 
     }
+    exports.update = function(req, res, next) {
+        //$set: { "content": req.body.content }
+        //console.log('req', req.body)
+        Image.findByIdAndUpdate(req.body._id, { $set: req.body }, { new: true },
+            function(err, request) {
+                if (err) {
+                    res.send(err);
+                } else {
+                    res.json(request);
+                }
+            });
+    }

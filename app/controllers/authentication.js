@@ -17,7 +17,7 @@ function setUserInfo(request) {
 }
 
 exports.login = function(req, res, next) {
-
+console.log ('ok1')
     var userInfo = setUserInfo(req.user);
 
     res.status(200).json({
@@ -25,6 +25,7 @@ exports.login = function(req, res, next) {
         //user: userInfo
         user: req.user
     });
+   //console.log (res,'res')
 
 }
 
@@ -52,28 +53,30 @@ exports.register = function(req, res, next) {
             return res.status(422).send({ error: 'That email address is already in use' });
         }
 
-        var user = new User({
-            email: email,
-            password: password,
-            role: role
-        });
+       // var user = new User({
+       //     email: email,
+       //     password: password,
+       //     role: role
+      //  });
+      // var user = new User(req.body);
+     //   var user = new User(user);
 
 
-        user.save(function(err, user) {
+        User.create(req.body, function(err, user) {
 
             if (err) {
                 return next(err);
             }
 
-            var userInfo = setUserInfo(user);
+           var userInfo = setUserInfo(user);
 
             res.status(201).json({
                 token: 'JWT ' + generateToken(userInfo),
-                user: userInfo
+                user: user
+                
             })
-
+            console.log (res,'res')
         });
-        console.log('ok', user);
     });
 
 }

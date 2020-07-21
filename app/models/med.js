@@ -20,8 +20,14 @@ var medSchema = new mongoose.Schema({
     medicationItemID:{
         type: String
     },
+    medicationItem:{
+        type: Object
+    },
     infor: {
         type: Object
+    },
+    status:{
+        type: String
     }
 
 }, {

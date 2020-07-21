@@ -106,7 +106,10 @@ exports.getDailyPatients= function(req, res, next) {
 
         User.aggregate(
             [   { $match: {role: 'patient'}},
-                {$group : { _id : { year : { $year : '$createdAt' }, month : { $month : '$createdAt' }, day : {$dayOfMonth : '$createdAt'} }, count : { $sum : 1 }       }}
+                {$group : { _id : { year : { $year : '$createdAt' }, 
+                month : { $month : '$createdAt' }, 
+                day : {$dayOfMonth : '$createdAt'} }, 
+                count : { $sum : 1 }       }}
   
            
          //   "createdAt": { $gte: new Date((new Date().getTime() - (req.body.days * 24 * 60 * 60 * 1000))) }
@@ -157,6 +160,40 @@ exports.getMonthlyPatients= function(req, res, next) {
             }
         });
        
+
+}
+exports.getMonthlyPatientsByProvider= function(req, res, next) {
+
+
+
+    
+    var pipeline=   [   
+        { $match: {role:'patient',
+                   providers: {'$elemMatch' :{'_id':{'$in':req.body.providerID }}},
+                   createdAt: { $gte: new Date((new Date().getTime() - (req.body.months * 24 * 60 * 60 * 1000))) }
+                  } 
+        },
+        {$group : { _id : { year : { $year : '$createdAt' }, month : { $month : '$createdAt' } }, count : { $sum : 1 }}},
+        {$sort: {'_id.year':1, '_id.month':1}}
+   
+   
+    ];
+
+
+
+
+User.aggregate(
+    pipeline,
+   // cursor({ batchSize: 1000 }),
+    function(err, result)	{
+        if(err)	{
+            console.log(err);
+        }
+        else	{
+            res.json(result);
+        }
+    });
+   
 
 }
 exports.getCountByService= function(req, res, next) {
@@ -305,7 +342,8 @@ exports.getUsersByProfile = function(req, res, next) {
 
 exports.getUserByEmail = function(req, res, next) {
 
-    User.findOne({ 'email': req.params.email },
+    User.findOne(
+        { 'email': req.params.email },
         function(err, data) {
             if (err) {
                 res.send(err);
@@ -327,50 +365,67 @@ exports.getUserByEmail = function(req, res, next) {
 
 
 exports.createUser = function(req, res, next) {
-    //console.log(req.body);
-    // var user = JSON.parse(req.body);
-    User.create(req.body, function(err, data) {
+   // console.log ('req', req)
+    User.findOne({ email: req.body.email }, function(err, existingUser) {
 
         if (err) {
-            res.send(err);
-
+            return next(err);
         }
-        if (req.body.profilePic != undefined) {
-            var loadedfile = Buffer.from(req.body.profilePic, 'base64');
-            // console.log(loadedfile)
 
-            var path = '././profile_photos/' + data._id + '.jpg'
-                // console.log(path)
-            console.log('pic', req.body.profilePic)
-            fs.writeFile(path, req.body.profilePic, function(err) {
-                if (err) {
-                    return console.log(err);
-                }
-                console.log("File saved successfully!");
-            });
+        if (existingUser) {
+            return res.status(422).send({ error: 'That email address is already in use' });
         }
-        res.json(data);
-        var _send = res.send;
-        var sent = false;
-        res.send = function(data) {
-            if (sent) return;
-            _send.bind(res)(data);
-            sent = true;
-        };
-        next();
 
+    
 
+        User.create(req.body, function(err, data) {
+
+            if (err) {
+                res.send(err);
+    
+            }
+            if (req.body.profilePic != undefined) {
+                var loadedfile = Buffer.from(req.body.profilePic, 'base64');
+                // console.log(loadedfile)
+    
+                var path = '././profile_photos/' + data._id + '.jpg'
+                    // console.log(path)
+                console.log('pic', req.body.profilePic)
+                fs.writeFile(path, req.body.profilePic, function(err) {
+                    if (err) {
+                        return console.log(err);
+                    }
+                    console.log("File saved successfully!");
+                });
+            }
+            res.json(data);
+            var _send = res.send;
+            var sent = false;
+            res.send = function(data) {
+                if (sent) return;
+                _send.bind(res)(data);
+                sent = true;
+            };
+            next();
+    
+    
+        });
+       
+        
     });
+  
 
 }
 exports.updateUser = function(req, res, next) {
 
     User.findByIdAndUpdate(req.body._id, { $set: req.body }, { new: true },
         function(err, data) {
-            if (err) {
+            console.log (' req.body',  req.body)
+            console.log ('user updated', data)
+            if (err||data==undefined) {
                 res.send(err);
             }
-            console.log('pic', req.body.profilePic)
+            /*console.log('pic', req.body.profilePic)
             if (req.body.profilePic != undefined) {
                 var loadedfile = Buffer.from(req.body.profilePic, 'base64');
                 // console.log(loadedfile)
@@ -383,7 +438,7 @@ exports.updateUser = function(req, res, next) {
                     }
                     console.log("File saved successfully!");
                 });
-            }
+            }*/
             res.json(data);
             var _send = res.send;
             var sent = false;
@@ -705,5 +760,321 @@ exports.getlabItems = function(req, res, next) {
                         })
                               
                      }
-                        
+
+exports.getVisitsByProvider = function(req, res, next) {
+
+var pipeline= [
+
+    //find provider
+
+    {'$match': {'profiles': {'$elemMatch':{'_id':{'$in':req.body.profileIDs}}},'role':'provider'}},
+
+    { "$lookup": {
+        "let": { "providerID": "$_id" },
+          "from": "visits",
+           "pipeline": [
+            { "$match": { "$expr": {'$and': [
+                { "$eq": [ {"$toString":"$providerID"}, {"$toString":"$$providerID"} ] 
+                },         
+                { "$eq": ['$availableAtYear', req.body.availableAtYear]},
+                { "$eq": ['$availableAtMonth', req.body.availableAtMonth]},
+                { "$eq": ['$availableAtDate',req.body.availableAtDate]}, 
+                {'$or':  [{ "$eq": ['$status','avail']},
+                          {"$and":[{ "$eq": ['$status','reserved']},
+                                  { "$eq": ['$patientID',req.body.patientID]}
+                                  ]}
+                      
+                ] }
+              ]}
+                   
+                    } 
+                }
+             ],
+            "as": "providerVisits"
+           }
+       },
+];
+User.aggregate(
+pipeline,
+
+// cursor({ batchSize: 1000 }),
+function(err, result)	{
+    console.log ('req.body',req.body)
+    if(err)	{
+        console.log(err);
+    }
+    else	{
+        res.json(result);
+    }
+});
+
+}
+  //in provider mail box                      
+exports.getProviderMails= function(req, res, next) {
+
+  var pipeline= [
+        //look up mail collection
+            {"$match": {'role':{'$eq' :'patient'}}},
             
+            { "$lookup": {
+                "let": { "patientID": "$_id" },
+                "from": "mails",
+                "pipeline": [
+                            { "$match": { "$expr":
+                                        {
+                                        "$and":[
+                                               
+                                                {'$or':[  
+                                                    //mail sent from provider
+                                                    { '$and':[{ "$eq": [ {"$toString":"$userID"}, req.body.providerID ]},
+                                                            { "$eq": [ {"$toString":"$patientID"}, {"$toString":"$$patientID"} ]},
+                                                           
+                                                            ]},
+                                                    //mail sent to provider from patient or other provider
+                                                    { '$and':[ { "$eq": [ {"$toString":"$userID"}, {"$toString":"$$patientID"} ]},
+                                                            { "$eq": [ {"$toString":"$providerID"},  req.body.providerID]}
+                                                            ]},
+    
+                                                    ]
+                                                }
+                                                ]
+                                        }
+                                       
+              
+                                        }
+                            },
+                            { '$limit': req.body.limit }
+                ],
+                "as": "mails"
+            }},
+            {"$unwind":  "$mails"},
+
+           
+            {"$group": 
+                {_id:{_id: "$_id",
+                    name:"$name",
+                    profiles:"$profiles",
+                    serviceList:"$serviceList",
+                    photo:"$photo",
+                    age: "$age",
+                    openID:"$openID",
+                    gender: "$gender",
+                    educations:"$educations",
+                    providers:"$providers" 
+                    },
+                  mails: {$push:"$mails"},
+          
+                }
+            
+            },
+
+            {"$project":{
+                _id:'$_id._id',
+                name:'$_id.name',
+                profiles:'$_id.profiles',
+                age:'$_id.age',
+                gender:"$_id.gender", 
+                openID:"$_id.openID",
+                educations:"$_id.educations",
+                providers:"$_id.providers",
+                photo:"$_id.photo",
+                mails:"$mails",
+               }
+            },
+            {"$addFields": 
+                    { "newMails":
+                            {
+                                $filter: {
+                                    input: "$mails",
+                                    as: "item",
+                                    cond: { $eq: [ "$$item.status", 'active' ] }
+                                    }
+                                }
+                    }
+            
+              },
+              {"$addFields": 
+                    { "newMailsCount":
+                         {"$size":"$newMails"}
+                     
+              }
+      
+        },
+    
+          
+        
+        ]       
+    
+    User.aggregate(
+            pipeline,
+            function(err, result)	{
+                console.log ('_ids',req.body.providerID )
+                console.log ('result',result)
+                if(err)	{
+                    console.log(err);
+                }
+                else	{
+                    res.json(result);
+                }
+            });
+
+    }
+ 
+    //in mail box from other provider about the patient 
+exports.getPatientMails= function(req, res, next) {
+    var providerIDs=[];
+console.log ('req.body.providerIDs',req.body.providerIDs)
+console.log ('req.body.patientID',req.body.patientID)
+
+    for (let providerID of req.body.providerIDs){
+        providerIDs.push(mongoose.Types.ObjectId(providerID))
+    }
+        //find all patients of a provider
+           var pipeline= [
+        
+                //get patient
+        {"$match":{'_id':{'$in':providerIDs}}},
+    
+         { "$lookup": {
+                        "let": { "providerID": "$_id" },
+                        "from": "mails",
+                        "pipeline": [
+                                    { "$match": { "$expr":
+                                                {'$or':[  
+                                                        //mail sent from patient
+                                                        { '$and':[
+                                                                { "$eq": [ {"$toString":"$userID"},{"$toString":req.body.patientID} ]},
+                                                                { "$eq": [ {"$toString":"$providerID"}, {"$toString":"$$providerID"}, ]}
+                                                                ]},
+                                                        //mail sent from provider
+                                                        { '$and':[ 
+                                                                { "$eq": [ {"$toString":"$userID"},{"$toString":"$$providerID"},]},
+                                                                { "$eq": [ {"$toString":"$patientID"},{"$toString":req.body.patientID} ]},
+                                                                ]}
+                                                        ]
+                                                }
+                      
+                                                }
+                                    },
+                                    { '$limit': req.body.limit }
+                        ],
+                        "as": "mails"
+                    }},
+                  /*  {"$addFields": {
+                        "newMails":{"$map":
+                                        {
+                                        input: "$mails",
+                                        as: "mail",
+                                        //if ther is new mail for current provider
+                                        in: { "$cond":{if: { '$and':[{ "$eq": [ {"$toString":"$providerID"}, req.body.providerID ]},
+                                                                     { '$eq':["$status", "active" ] }
+                                                            ]},
+                                                        }, 
+                                                        then: "$$mail"
+                                                    }
+                                            }
+                                
+                                    }
+                                    }
+                    },
+                    {"$addFields": {
+                        "newMailsCount":{"$size":"$newMails"}
+                               
+                        }
+                    },
+        
+                    { '$sort' : { "newMailsCount" : -1 } }*/
+                ]       
+            
+            User.aggregate(
+                    pipeline,
+                    function(err, result)	{
+                        console.log ('_id',req.body.patientListID )
+                        console.log ('result',result)
+                        if(err)	{
+                            console.log(err);
+                        }
+                        else	{
+                            res.json(result);
+                        }
+                    });
+                   
+            }
+        
+exports.getPatientMailsFromProviders= function(req, res, next) {
+
+    //find all patients of a provider
+        var pipeline= [
+    
+            //get patient
+    { "$match": { "_id": mongoose.Types.ObjectId(req.body.patientID)} },
+        {"$unwind":"$providers"},                       
+            //look up mail collection
+        { "$lookup": {
+                    "let": { "providerID": "$poviders._id" },
+                    "from": "mails",
+                    "pipeline": [
+                                { "$match": { "$expr":
+                                            {'$or':[  
+                                                    //mail sent from patient
+                                                    { '$and':[{ "$eq": [ {"$toString":"$userID"}, req.body.providerID ]},
+                                                            { "$eq": [ {"$toString":"$providerID"}, "$$providerID" ]},
+                                                            {"$toString":"$patientID"},req.body.patientID ]},
+                                                            
+                                                    //mail sent from provider
+                                                    { '$and':[ { "$eq": [ {"$toString":"$patientID"},req.body.patientID ]},
+                                                            { "$eq": [ {"$toString":"$userID"},"$$providerID" ]},
+                                                            { "$eq": [ {"$toString":"$providerID"}, req.body.providerID ]},
+                                                            ]}
+                                                    ]
+                                            }
+                    
+                                            }
+                                },
+                                { '$limit': req.body.limit }
+                    ],
+                    "as": "mails"
+                }},
+                {"$addFields": {
+                    "newMails":{"$map":
+                                    {
+                                    input: "$mails",
+                                    as: "mail",
+                                    //if ther is new mail for current provider
+                                    in: { "$cond":{if: { '$and':[{ "$eq": [ {"$toString":"$providerID"}, req.body.providerID ]},
+                                                                    { '$eq':["$status", "active" ] }
+                                                        ]},
+                                                    }, 
+                                                    then: "$$mail"
+                                                }
+                                        }
+                            
+                                }
+                                }
+                },
+                {"$addFields": {
+                    "newMailsCount":{"$size":"$newMails"}
+                            
+                    }
+                },
+                { '$sort' : { "newMailsCount" : 1 } }
+    
+            
+            ]       
+        
+        Data.aggregate(
+                pipeline,
+                function(err, result)	{
+                    console.log ('_id',req.body.patientListID )
+                    console.log ('result',result)
+                    if(err)	{
+                        console.log(err);
+                    }
+                    else	{
+                        res.json(result);
+                    }
+                });
+                
+        }
+             
+                                        

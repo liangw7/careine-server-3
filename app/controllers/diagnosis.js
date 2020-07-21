@@ -68,20 +68,23 @@ exports.getBySearch = function(req, res, next) {
             _kind:0,
             subDiagnosisList:0
         }},
-        {"$unwind":"$Rubric"},
+      
         { "$match": { "$or":[
                              {"_code":{'$regex':req.body.filter.search}},
-                             {"Rubric.Label.__text":{'$regex':req.body.filter.search}},
+                             {'Rubric':{'$elemMatch':{'Label.__text':{'$regex':req.body.filter.search}}}},
+                             {'chRubric':{'$elemMatch':{'Label.__Text':{'$regex':req.body.filter.search}}}},
                         ]
                     }
         },
-        {'$group':{
+      /*  {'$group':{
                     '_id':{'_id':'$_id',
                         'SuperClass':'$SuperClass',
                         '_code':'$_code',
-                        'SubClass':'$SubClass'
+                        'SubClass':'$SubClass',
+
                         },
-                  'Rubric':{"$push":'$Rubric'}
+                   'Rubric':{"$push":'$Rubric'},
+                   'chRubric':{"$push":'$chRubric'}
                 }
             },
        {'$project':{
@@ -89,8 +92,9 @@ exports.getBySearch = function(req, res, next) {
                 'SuperClass':'$_id.SuperClass',
                 '_code':'$_id._code',
                 'SubClass':'$_id.SubClass',
-                'Rubric':1
-            }},
+                'Rubric':1,
+                'chRubric':1
+            }},*/
         
     ]
  

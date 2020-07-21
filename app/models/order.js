@@ -31,6 +31,9 @@ var orderSchema = new mongoose.Schema({
     status:{
         type: String
     },
+    startMonth:{
+        type:Number
+    },
     value:{
         type:Number
     },
@@ -42,6 +45,9 @@ var orderSchema = new mongoose.Schema({
     },
     modifiedBy: {
         type: Object
+    },
+    visitDate:{
+        type:Date
     }
 
 }, {

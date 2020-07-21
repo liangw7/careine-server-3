@@ -32,272 +32,619 @@ exports.getById = function(req, res, next) {
 
 }
 exports.getSummary = function(req, res, next) {
+    console.log ('req.body.selectedStart',req.body.selectedStart)
 
-   var pipeline= [
-                           { "$match": { "_id": mongoose.Types.ObjectId(req.body.obSetID) }},
-                        
-                            { "$unwind": 
-                              "$obs"
-                               // {"path": "$obSets",
-                               // "preserveNullAndEmptyArrays": true}
-                                },
-                            { "$lookup": {
-                                "let": { "obsID": "$obs._id" },
-                                "from": "categories",
-                                "pipeline": [
-                                { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obsID"} ] } } }
-                                ],
-                                "as": "obs_doc"
-                            }},
-                          
-                            { "$unwind": '$obs_doc'
-                            },
-            
-                            {'$addFields':{'obs_doc.patientID': req.body.patientID, 'obs_doc.index':'$obs.index'}
-                            },
-                            
-                            {"$project":{
-                            
-                                obs:0
-                            
-                            }},
-            
-                            { "$lookup": {
-                                "let": {"obsID": "$obs_doc._id" , 
-                                        "patientID":"$obs_doc.patientID"},
-                                "from": "datas",
-                                "pipeline":[
-                                    {
-                                          "$match": {
-                                                  "$expr": {
-                                                      
-                                                        "$and": [
-                                                            {
-                                                                "$eq": [ {"$toString":"$obID"}, {"$toString":"$$obsID"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ {"$toString":"$patientID"}, {"$toString":"$$patientID"} ]
-                                                            }
-                                                        ]    
-                                                    }
-                                                  }
-                                              }
-                                      ],
-          
-                                "as": "obs_doc.patientData"
-                            }},
-                            { "$unwind": {
-                                "path":'$obs_doc.patientData',
-                                "preserveNullAndEmptyArrays": true
-                            } },
-                             { "$lookup": {
-                                "let": {"patientID":"$obs_doc.patientID",
-                                        "visitID": "$obs_doc.patientData.visitID"},
-                                "from": "visits",
-                                "pipeline":[
-                            {
-                              "$match": {
-                                      "$expr": {
+   if (req.body.selectedStart&&req.body.selectedEnd){
+
+        var pipeline= [
+            { "$match": { "_id": mongoose.Types.ObjectId(req.body.obSetID) }},
+         
+             { "$unwind": 
+               "$obs"
+                // {"path": "$obSets",
+                // "preserveNullAndEmptyArrays": true}
+                 },
+             { "$lookup": {
+                 "let": { "obsID": "$obs._id" },
+                 "from": "categories",
+                 "pipeline": [
+                 { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obsID"} ] } } }
+                 ],
+                 "as": "obs_doc"
+             }},
+           
+             { "$unwind": '$obs_doc'
+             },
+
+             {'$addFields':{'obs_doc.patientID': req.body.patientID, 'obs_doc.index':'$obs.index'}
+             },
+             
+             {"$project":{
+             
+                 obs:0
+             
+             }},
+
+             { "$lookup": {
+                 "let": {"obsID": "$obs_doc._id" , 
+                         "patientID":"$obs_doc.patientID",
+                      //  "createdAt": "$obs_doc.createdAt"
+                        },
+                 "from": "datas",
+                 "pipeline":[
+                     {
+                           "$match": {
+                                   "$expr": {
+
+                                   
+                                         "$and": [
+                                             {
+                                                 "$eq": [ {"$toString":"$obID"}, {"$toString":"$$obsID"} ]
+                                             },
+                                             {
+                                                 "$eq": [ {"$toString":"$patientID"}, {"$toString":"$$patientID"} ]
+                                             }
+                                            
+                                            
+                                             
+                                         ]  
+                                     
+                                       
                                           
-                                            "$and": [
-                                                {
-                                                    "$eq": [ {"$toString":"$_id"}, {"$toString":"$$visitID"} ]
-                                                },
-                                                {
-                                                    "$eq": [ {"$toString":"$patientID"}, {"$toString":"$$patientID"} ]
-                                                }
-                                            ]    
-                                        }
-                                      }
-                                  }
-                          ],
+                                     }
+                                   },
+                                 
+                               },
+                     { '$limit': req.body.limit }
+                       ],
 
-                    "as": "obs_doc.patientData.visitData"
-                }},
-                    { "$unwind": {
-                    "path":'$obs_doc.patientData.visitData',
-                    "preserveNullAndEmptyArrays": true
-                    } },
-                            { "$lookup": {
-                                "let": { "mappingLab":"$obs_doc.mappingLab", 
-                                          "patientID":"$obs_doc.patientID" },
-                                "from": "labs",
-                                "pipeline":[
-                                    {
-                                          "$match": {
-                                                  "$expr": {
-                                                       "$and": [
-                                                            {
-                                                                "$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$patientID", "$$patientID" ]
-                                                            },
-                                                           // {
-                                                           //   "$gte": [ "$$mappingLab.searchDays",{"$subtract": [{"$toDate":req.body.visitDate}, "$resultAt"  ] } ]
-                                                         // },
-                                                            
-                                                        ]
-                                                  }
-                                                  }
-                                              }
-                                      ],
-          
-                                "as": "obs_doc.labData"
-                            }},  
-    
-                            { "$unwind": {
-                                "path":'$obs_doc.labData',
-                                "preserveNullAndEmptyArrays": true
-                } },
-                            {"$addFields": {
-                                "obs_doc.patientData":
-                                               { "$cond": {
-                                                   if :{'$eq': ["$obs_doc.type", 'mapping lab']},
-                                                    then:"$obs_doc.labData",
-                                                   else:"$obs_doc.patientData"
-                                                   
-                                                   }
-                                           }
-                                       }
-                            },
-
-                    
-               
-
-               
-        
-     {"$addFields": {
-        "obs_doc.value":{ $ifNull: [ "$obs_doc.patientData.value", ''] },
-        "obs_doc.values":{ $ifNull: [ "$obs_doc.patientData.values", []] },
-        "obs_doc.alertLevel":   { "$cond": {
-                    if :{"$and":[{"$ne": ["$obs_doc.patientData.value", null]},
-                                {"$ne": ["$obs_doc.patientData.value", '']},
-                                {"$in":["$obs_doc.type",["number", "mapping ob", "mapping lab","mapping", "calculation"]]}
-                                ]
-                            },
-                    then:{
-                    "$map":
-                        {
-                        input: "$obs_doc.options",
-                        as: "option",
-                        in: { "$cond": 
-                                    { if:{ "$and":
-                                    [{ $gte:[{ '$toDecimal': '$obs_doc.patientData.value'}, "$$option.from" ] },
-                                    { $lt: [{'$toDecimal': '$obs_doc.patientData.value'}, "$$option.to" ] }
-                                    ]
-                                    }, 
-                                    then: { $ifNull: [ "$$option.alertLevel", 0] },
-                                    else:0
-                                    }
-                                }
+                 "as": "obs_doc.patientData"
+             }},
+             { "$unwind": {
+                 "path":'$obs_doc.patientData',
+                 "preserveNullAndEmptyArrays": false
+             } },
+             { "$lookup": {
+                "let": {"patientID":"$obs_doc.patientID",
+                        "visitID": "$obs_doc.patientData.visitID"},
+                "from": "visits",
+                "pipeline":[
+            {
+              "$match": {
+                      "$expr": {
+                          "$or":[{
+                            "$and": [
+                                {
+                                    "$eq": [ {"$toString":"$_id"}, {"$toString":"$$visitID"} ]
+                                },
+                                {
+                                    "$eq": [ {"$toString":"$patientID"}, {"$toString":"$$patientID"} ]
+                                },
+                                {
+                                    "$gt": [{'$toDate':'$visitDate'}, 
+                                            {'$toDate':req.body.selectedStart}
+                                          ]
+                                   },
+                                   {
+                                    "$gt": [{'$toDate':req.body.selectedEnd}, 
+                                            {'$toDate':'$visitDate'}
+                                          ]
+                                   },
+                                  
+                               
+                              
+            
+                            ]  
+            
+                          }
+                        
+            
+                          ]
+                          
+                          
                         }
-                },
-                else:[0]
-                    
-                    }
+                      }
+                  }
+            ],
+            
+            "as": "obs_doc.patientData.visitData"
+            }},
+            { "$unwind": {
+            "path":'$obs_doc.patientData.visitData',
+            "preserveNullAndEmptyArrays": false
+            } },
+            { "$lookup": {
+                "let": { "mappingLab":"$obs_doc.mappingLab", 
+                          "patientID":"$obs_doc.patientID" },
+                "from": "labs",
+                "pipeline":[
+                    {
+                          "$match": {
+                                  "$expr": {
+                                       "$and": [
+                                            {
+                                                "$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
+                                            },
+                                            {
+                                                "$eq": [ "$patientID", "$$patientID" ]
+                                            },
+                                           // {
+                                           //   "$gte": [ "$$mappingLab.searchDays",{"$subtract": [{"$toDate":req.body.visitDate}, "$resultAt"  ] } ]
+                                         // },
+                                            
+                                        ]
+                                  }
+                                  }
+                              }
+                      ],
+            
+                "as": "obs_doc.labData"
+            }},  
+            
+            { "$unwind": {
+                "path":'$obs_doc.labData',
+                "preserveNullAndEmptyArrays": true
+            } },
+            {"$addFields": {
+                "obs_doc.patientData":
+                               { "$cond": {
+                                   if :{'$eq': ["$obs_doc.type", 'mapping lab']},
+                                    then:"$obs_doc.labData",
+                                   else:"$obs_doc.patientData"
+                                   
+                                   }
+                           }
+                       }
             },
-        "obs_doc.createdAt":  { "$cond": {
+            
+            {"$addFields": {
+            "obs_doc.value":{ $ifNull: [ "$obs_doc.patientData.value", ''] },
+            "obs_doc.values":{ $ifNull: [ "$obs_doc.patientData.values", []] },
+            "obs_doc.alertLevel":   { "$cond": {
+            if :{"$and":[{"$ne": ["$obs_doc.patientData.value", null]},
+                {"$ne": ["$obs_doc.patientData.value", '']},
+                {"$in":["$obs_doc.type",["number", "mapping ob", "mapping lab","mapping", "calculation"]]}
+                ]
+            },
+            then:{
+            "$map":
+            {
+            input: "$obs_doc.options",
+            as: "option",
+            in: { "$cond": 
+                    { if:{ "$and":
+                    [{ $gte:[{ '$toDecimal': '$obs_doc.patientData.value'}, "$$option.from" ] },
+                    { $lt: [{'$toDecimal': '$obs_doc.patientData.value'}, "$$option.to" ] }
+                    ]
+                    }, 
+                    then: { $ifNull: [ "$$option.alertLevel", 0] },
+                    else:0
+                    }
+                }
+            }
+            },
+            else:[0]
+            
+            }
+            },
+            "obs_doc.createdAt":  { "$cond": {
             if :{'$eq': ["$obs_doc.type", 'mapping lab']},
-             then:"$obs_doc.labData.resultAt",
+            then:"$obs_doc.labData.resultAt",
             else:"$obs_doc.patientData.visitData.visitDate"
             
             }
-    }
-                    }      
-    },
-
-    {"$addFields": {
-        "obs_doc.alertLevel":
-        { "$cond": {
+            }
+            }      
+            },
+            
+            {"$addFields": {
+            "obs_doc.alertLevel":
+            { "$cond": {
             if :{'$eq': ["$obs_doc.type", 'string']},
-             then:  0,
+            then:  0,
             else:{
-                "$reduce": {
-                    input: "$obs_doc.alertLevel",
-                    initialValue: 0,
-                    in: { $add: [ "$$value", "$$this" ] }
-                }
+            "$reduce": {
+            input: "$obs_doc.alertLevel",
+            initialValue: 0,
+            in: { $add: [ "$$value", "$$this" ] }
+            }
             }
             
             }
-        }
-      
-    }      
-    },
-    
-    {"$addFields": {
-        "obs_doc.alertLevel":{ $ifNull: [ "$obs_doc.alertLevel", 0 ]},
+            }
+            
+            }      
+            },
+            
+            {"$addFields": {
+            "obs_doc.alertLevel":{ $ifNull: [ "$obs_doc.alertLevel", 0 ]},
+            }
+            },
+            
+            { "$sort": { "obs_doc.createdAt": 1 }},  
+            
+            {"$group": {_id:{_id: "$_id",
+            name:"$name",
+            label:"$label",
+            patientID:req.body.patientID,
+            obName: "$obs_doc.name",
+            obLabel: "$obs_doc.label",
+            obID:"$obs_doc._id",
+            obType:"$obs_doc.type",
+            obIndex:"$obs_doc.index",
+            obDevices:"$obs_doc.devices"
+            
+            },
+            valueSet: {$push:"$obs_doc.value"},
+            valuesSet:{$push:"$obs_doc.values"},
+            timeSet:{$push:"$obs_doc.createdAt"},
+            alertLevelSet:{$push:"$obs_doc.alertLevel"},
+            }
+            },
+            
+            {"$project":{
+            _id:'$_id._id',
+            name:'$_id.name',
+            label:'$_id.label',
+            patientID:'$_id.patientID',
+            obs:{_id:"$_id.obID", 
+            name:"$_id.obName",
+            label:"$_id.obLabel",
+            type:"$_id.obType",
+            index:'$_id.obIndex',
+            valueSet:"$valueSet", 
+            devices:'$_id.obDevices',
+            valuesSet:"$valuesSet", 
+            timeSet:"$timeSet",
+            alertLevelSet:"$alertLevelSet",
+            
+            },
+            }
+            },
+            
+            { "$sort": { "obs.index": 1 }}, 
+            
+            {"$group": {_id:{_id: "$_id",
+            name:"$name",
+            label:"$label",
+            
+            patientID:req.body.patientID,},
+            
+            obs:{$push:"$obs"}
+            }
+            },
+            {"$project":{
+            _id:'$_id._id',
+            name:'$_id.name',
+            label:'$_id.label',
+            
+            patientID:'$_id.patientID',
+            obs:1
+            }
+            } 
+            
+            
+            
+            
+            
+            
+              
+
+
+
+];
     }
-    },
+    else{
+        var pipeline= [
+            { "$match": { "_id": mongoose.Types.ObjectId(req.body.obSetID) }},
+         
+             { "$unwind": 
+               "$obs"
+                // {"path": "$obSets",
+                // "preserveNullAndEmptyArrays": true}
+                 },
+             { "$lookup": {
+                 "let": { "obsID": "$obs._id" },
+                 "from": "categories",
+                 "pipeline": [
+                 { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obsID"} ] } } }
+                 ],
+                 "as": "obs_doc"
+             }},
+           
+             { "$unwind": '$obs_doc'
+             },
 
-    { "$sort": { "obs_doc.createdAt": 1 }},  
+             {'$addFields':{'obs_doc.patientID': req.body.patientID, 'obs_doc.index':'$obs.index'}
+             },
+             
+             {"$project":{
+             
+                 obs:0
+             
+             }},
+
+             { "$lookup": {
+                 "let": {"obsID": "$obs_doc._id" , 
+                         "patientID":"$obs_doc.patientID"},
+                 "from": "datas",
+                 "pipeline":[
+                     {
+                           "$match": {
+                                   "$expr": {
+
+                                   
+                                         "$and": [
+                                             {
+                                                 "$eq": [ {"$toString":"$obID"}, {"$toString":"$$obsID"} ]
+                                             },
+                                             {
+                                                 "$eq": [ {"$toString":"$patientID"}, {"$toString":"$$patientID"} ]
+                                             },
+                                            
+                                             
+                                         ]  
+                                     
+                                       
+                                          
+                                     }
+                                   },
+                                 
+                               },
+                     { '$limit': req.body.limit }
+                       ],
+
+                 "as": "obs_doc.patientData"
+             }},
+             { "$unwind": {
+                 "path":'$obs_doc.patientData',
+                 "preserveNullAndEmptyArrays": true
+             } },
+              { "$lookup": {
+                 "let": {"patientID":"$obs_doc.patientID",
+                         "visitID": "$obs_doc.patientData.visitID"},
+                 "from": "visits",
+                 "pipeline":[
+             {
+               "$match": {
+                       "$expr": {
+                           "$or":[{
+                             "$and": [
+                                 {
+                                     "$eq": [ {"$toString":"$_id"}, {"$toString":"$$visitID"} ]
+                                 },
+                                 {
+                                     "$eq": [ {"$toString":"$patientID"}, {"$toString":"$$patientID"} ]
+                                 }
+
+                             ]  
+
+                           }
                          
-    {"$group": {_id:{_id: "$_id",
-                            name:"$name",
-                            label:"$label",
-                            patientID:req.body.patientID,
-                            obName: "$obs_doc.name",
-                            obLabel: "$obs_doc.label",
-                            obID:"$obs_doc._id",
-                            obType:"$obs_doc.type",
-                            obIndex:"$obs_doc.index",
-                            obDevices:"$obs_doc.devices"
 
-                        },
-                    valueSet: {$push:"$obs_doc.value"},
-                    valuesSet:{$push:"$obs_doc.values"},
-                    timeSet:{$push:"$obs_doc.createdAt"},
-                    alertLevelSet:{$push:"$obs_doc.alertLevel"},
+                           ]
+                           
+                           
+                         }
+                       }
+                   }
+           ],
+
+     "as": "obs_doc.patientData.visitData"
+ }},
+     { "$unwind": {
+     "path":'$obs_doc.patientData.visitData',
+     "preserveNullAndEmptyArrays": true
+     } },
+             { "$lookup": {
+                 "let": { "mappingLab":"$obs_doc.mappingLab", 
+                           "patientID":"$obs_doc.patientID" },
+                 "from": "labs",
+                 "pipeline":[
+                     {
+                           "$match": {
+                                   "$expr": {
+                                        "$and": [
+                                             {
+                                                 "$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
+                                             },
+                                             {
+                                                 "$eq": [ "$patientID", "$$patientID" ]
+                                             },
+                                            // {
+                                            //   "$gte": [ "$$mappingLab.searchDays",{"$subtract": [{"$toDate":req.body.visitDate}, "$resultAt"  ] } ]
+                                          // },
+                                             
+                                         ]
+                                   }
+                                   }
+                               }
+                       ],
+
+                 "as": "obs_doc.labData"
+             }},  
+
+             { "$unwind": {
+                 "path":'$obs_doc.labData',
+                 "preserveNullAndEmptyArrays": true
+ } },
+             {"$addFields": {
+                 "obs_doc.patientData":
+                                { "$cond": {
+                                    if :{'$eq': ["$obs_doc.type", 'mapping lab']},
+                                     then:"$obs_doc.labData",
+                                    else:"$obs_doc.patientData"
+                                    
+                                    }
+                            }
                         }
-            },
-    
-    {"$project":{
-                    _id:'$_id._id',
-                    name:'$_id.name',
-                    label:'$_id.label',
-                    patientID:'$_id.patientID',
-                    obs:{_id:"$_id.obID", 
-                        name:"$_id.obName",
-                        label:"$_id.obLabel",
-                        type:"$_id.obType",
-                        index:'$_id.obIndex',
-                        valueSet:"$valueSet", 
-                        devices:'$_id.obDevices',
-                        valuesSet:"$valuesSet", 
-                        timeSet:"$timeSet",
-                        alertLevelSet:"$alertLevelSet",
-                     
-                    },
-                }
-            },
+             },
 
-   
- { "$sort": { "obs.index": 1 }}, 
+     
+
+
+
+
+{"$addFields": {
+"obs_doc.value":{ $ifNull: [ "$obs_doc.patientData.value", ''] },
+"obs_doc.values":   { "$cond": {
+    if :{"$and":[{"$ne": ["$obs_doc.patientData.value", null]},
+                {"$ne": ["$obs_doc.patientData.value", '']},
+                {"$in":["$obs_doc.type",["number", "mapping ob", "mapping lab","mapping", "calculation"]]}
+                                        ]
+                                    },
+                            then:{
+                            "$map":
+                                {
+                                input: "$obs_doc.options",
+                                as: "option",
+                                in: { "$cond": 
+                                            { if:{ "$and":
+                                            [{ $gte:[{ '$toDecimal': '$obs_doc.patientData.value'}, "$$option.from" ] },
+                                            { $lt: [{'$toDecimal': '$obs_doc.patientData.value'}, "$$option.to" ] }
+                                            ]
+                                            }, 
+                                            then:  "$$option.text",
+                                            else:""
+                                            }
+                                        }
+                                }
+                        },
+                        else:"$obs_doc.patientData.values"
+                            
+                            }
+                        },
+"obs_doc.alertLevel":   { "$cond": {
+     if :{"$and":[{"$ne": ["$obs_doc.patientData.value", null]},
+                 {"$ne": ["$obs_doc.patientData.value", '']},
+                 {"$in":["$obs_doc.type",["number", "mapping ob", "mapping lab","mapping", "calculation"]]}
+                 ]
+             },
+     then:{
+     "$map":
+         {
+         input: "$obs_doc.options",
+         as: "option",
+         in: { "$cond": 
+                     { if:{ "$and":
+                     [{ $gte:[{ '$toDecimal': '$obs_doc.patientData.value'}, "$$option.from" ] },
+                     { $lt: [{'$toDecimal': '$obs_doc.patientData.value'}, "$$option.to" ] }
+                     ]
+                     }, 
+                     then: { $ifNull: [ "$$option.alertLevel", 0] },
+                     else:0
+                     }
+                 }
+         }
+ },
+ else:[0]
+     
+     }
+},
+"obs_doc.createdAt":  { "$cond": {
+if :{'$eq': ["$obs_doc.type", 'mapping lab']},
+then:"$obs_doc.labData.resultAt",
+else:"$obs_doc.patientData.visitData.visitDate"
+
+}
+}
+     }      
+},
+
+{"$addFields": {
+"obs_doc.alertLevel":
+{ "$cond": {
+if :{'$eq': ["$obs_doc.type", 'string']},
+then:  0,
+else:{
+ "$reduce": {
+     input: "$obs_doc.alertLevel",
+     initialValue: 0,
+     in: { $add: [ "$$value", "$$this" ] }
+ }
+}
+
+}
+}
+
+}      
+},
+
+{"$addFields": {
+"obs_doc.alertLevel":{ $ifNull: [ "$obs_doc.alertLevel", 0 ]},
+}
+},
+
+{ "$sort": { "obs_doc.createdAt": 1 }},  
+          
+{"$group": {_id:{_id: "$_id",
+             name:"$name",
+             label:"$label",
+             patientID:req.body.patientID,
+             obName: "$obs_doc.name",
+             obLabel: "$obs_doc.label",
+             obID:"$obs_doc._id",
+             obType:"$obs_doc.type",
+             obIndex:"$obs_doc.index",
+             obDevices:"$obs_doc.devices"
+
+         },
+     valueSet: {$push:"$obs_doc.value"},
+     valuesSet:{$push:"$obs_doc.values"},
+     timeSet:{$push:"$obs_doc.createdAt"},
+     alertLevelSet:{$push:"$obs_doc.alertLevel"},
+         }
+},
+
+{"$project":{
+     _id:'$_id._id',
+     name:'$_id.name',
+     label:'$_id.label',
+     patientID:'$_id.patientID',
+     obs:{_id:"$_id.obID", 
+         name:"$_id.obName",
+         label:"$_id.obLabel",
+         type:"$_id.obType",
+         index:'$_id.obIndex',
+         valueSet:"$valueSet", 
+         devices:'$_id.obDevices',
+         valuesSet:"$valuesSet", 
+         timeSet:"$timeSet",
+         alertLevelSet:"$alertLevelSet",
+      
+     },
+ }
+},
+
+
+{ "$sort": { "obs.index": 1 }}, 
 
 {"$group": {_id:{_id: "$_id",
-                name:"$name",
-                label:"$label",
-               
-                patientID:req.body.patientID,},
-                
-                obs:{$push:"$obs"}
-            }
-    },
-    {"$project":{
-        _id:'$_id._id',
-        name:'$_id.name',
-        label:'$_id.label',
-      
-        patientID:'$_id.patientID',
-        obs:1
-    }
+ name:"$name",
+ label:"$label",
+
+ patientID:req.body.patientID,},
+ 
+ obs:{$push:"$obs"}
+}
+},
+{"$project":{
+_id:'$_id._id',
+name:'$_id.name',
+label:'$_id.label',
+
+patientID:'$_id.patientID',
+obs:1
+}
 } 
 
 
-   
 
-        ];
+
+];
+    }
+   
+   
              Category.aggregate(
                      pipeline,
                     function(err, result)   {
@@ -449,7 +796,7 @@ exports.getReport = function(req, res, next) {
                                     "data.values":
                                     { "$cond": {
                                         if :{"$and":[{"$ne": ["$data.value", '']},
-                                                     {"$in":["$type",["number", "mapping ob","mapping", "mapping lab"]]}
+                                                     {"$in":["$type",["number","calculation", "mapping ob","mapping", "mapping lab"]]}
                                                     ]
                                                 },
                                         then:{
@@ -597,7 +944,7 @@ exports.getReport = function(req, res, next) {
                                             "data.values":
                                             { "$cond": {
                                                 if :{"$and":[{"$ne": ["$data.value", '']},
-                                                             {"$in":["$type",["number", "mapping ob","mapping", "mapping lab"]]}
+                                                             {"$in":["$type",["number","calculation", "mapping ob","mapping", "mapping lab"]]}
                                                             ]
                                                         },
                                                 then:{
@@ -780,7 +1127,7 @@ exports.getReport = function(req, res, next) {
                                             "data.values":
                                             { "$cond": {
                                                 if :{"$and":[{"$ne": ["$data.value", null]},
-                                                             {"$in":["$type",["number", "mapping ob","mapping", "mapping lab"]]}
+                                                             {"$in":["$type",["number","calculation", "mapping ob","mapping", "mapping lab"]]}
                                                             ]
                                                         },
                                                 then:{
@@ -1137,13 +1484,20 @@ for (let profileID of req.body.profileIDs){
                                             '_id':'$obSets_doc._id', 
                                             'addsIn':'$obSets.addsIn', 
                                             'index':'$obSets.index',
+                                            'desc':'$obSets_doc.desc',
+                                            'label':'$obSets_doc.label',
+                                            'image':'$obSets_doc.image',
                                             'field':'$obSets.field',
                                             'obs_doc':{//'name':'$obSets_doc.obs.name',
                                                         //'_id':'$obSets_doc.obs._id',
                                                         'addsIn':'$obSets_doc.obs.addsIn', 
+                                                        'index':'$obSets_doc.obs.index', 
                                                         'required':'$obSets_doc.obs.required', 
+                                                        'calculationItems':'$obSets_doc.obs.calculationItems',
                                                         'options':'$obSets_doc.obs_doc.options',
-                                                         'seiry': '$obSets_doc.obs_doc.seiry'}}}},
+                                                        'desc':'$obSets_doc.obs_doc.desc',
+                                                         'seiry': '$obSets_doc.obs_doc.seiry',
+                                                        'profileUrl':'$obSets_doc.obs_doc.profileUrl'}}}},
 
     {"$addFields": {
         "obSets_doc.obs_doc.label":{ $ifNull: [ "$obSets_doc.obs_doc.label", {ch:'$obSets_doc.obs_doc.name',en:''}] }
@@ -1162,13 +1516,18 @@ for (let profileID of req.body.profileIDs){
     
                 {"$group": {_id:{_id: "$_id",
                             name:"$name",
+                            index:"$index",
+                            image:"$image",
                             internalName:"$internalName",
                             label:'$label',
                             formType:"$formType",
                             formStyle:"$formStyle",  
+                            counter:'$counter',
                            addsIn:'$obSets_doc.addsIn',
                            obSetField:'$obSets_doc.field',
                            obSetName:'$obSets_doc.name',
+                           obSetDesc:'$obSets_doc.desc',
+                           obSetImage:'$obSets_doc.image',
                            obSetLabel:'$obSets_doc.label',
                            obSetIndex:'$obSets_doc.index',
                            obSetID:'$obSets_doc._id'},
@@ -1178,11 +1537,16 @@ for (let profileID of req.body.profileIDs){
                 {"$project":{
                                 _id:'$_id._id',
                                 name:'$_id.name',
+                                image:'$_id.image',
+                                index:'$_id.index',
+                                counter:'$_id.counter',
                                 internalName:"$_id.internalName",
                                 label:'$_id.label',
                                 formType:'$_id.formType',
                                 formStyle:"$_id.formStyle",  
                                 obSetName:'$_id.obSetName',
+                                obSetDesc:'$_id.obSetDesc',
+                                obSetImage:'$_id.obSetImage',
                                 obSetField:'$_id.obSetField',
                                 obSetLabel:'$_id.obSetLabel',
                                 obSetIndex:'$_id.obSetIndex',
@@ -1193,16 +1557,19 @@ for (let profileID of req.body.profileIDs){
                         }},
                             
 
-                {'$addFields':{'obSets':{'label':'$obSetLabel', 'index':'$obSetIndex','field':'$obSetField','name':'$obSetName', '_id':'$obSetID', 'addsIn':'$addsIn', 'obs':'$obs'}}},
+                {'$addFields':{'obSets':{'label':'$obSetLabel','desc':'$obSetDesc', 'index':'$obSetIndex','field':'$obSetField','name':'$obSetName','image':'$obSetImage', '_id':'$obSetID', 'addsIn':'$addsIn', 'obs':'$obs'}}},
 
                 { $sort : { 'obSets.index': 1 } },
-                {"$group": {_id:{_id: "$_id",name:"$name", internalName:"&internalName",label:'$label',formType:"$formType"},
+                {"$group": {_id:{_id: "$_id", counter:'$counter',name:"$name",image:"$image", internalName:"$internalName",label:'$label',formType:"$formType"},
                         
                             obSets: {$push: '$obSets'}}},
 
                 {"$project":{
                     _id:'$_id._id',
                     name:'$_id.name',
+                    image:'$_id.image',
+                    index:'$_id.index',
+                    counter:'$_id.counter',
                     internalName:"$_id.internalName",
                     label:'$_id.label',
                     formType:'$_id.formType',
@@ -1217,7 +1584,7 @@ for (let profileID of req.body.profileIDs){
         }
     else {
         pipeline= [
-                       { "$match": { "_id": {$in:formIDs } }},
+            { "$match": { "_id": {$in:formIDs } }},
                     
                         
                         { "$unwind": 
@@ -1291,6 +1658,7 @@ for (let profileID of req.body.profileIDs){
                     }},
                         {'$addFields':{'obSets_doc':{'name':'$obSets_doc.name', 
                                                     '_id':'$obSets_doc._id', 
+                                                    'image':'$obSets_doc.image',
                                                     'addsIn':'$obSets.addsIn', 
                                                     'index':'$obSets.index',
                                                     'field':'$obSets.field',
@@ -1298,20 +1666,22 @@ for (let profileID of req.body.profileIDs){
                                                                 //'_id':'$obSets_doc.obs._id',
                                                                 'patientID': req.body.patientID,
                                                                 'visitID': req.body.visitID,
+                                                                'orderID': req.body.orderID,
                                                                 'addsIn':'$obSets_doc.obs.addsIn',
                                                                 'required':'$obSets_doc.obs.required',
                                                                 'index':'$obSets_doc.obs.index',
-                                                              
+                                                               
                                                                 //'options':'$obSets_doc.obs_doc.options'
                                                             }}}},
                      {"$addFields": {
                             "obSets_doc.label":{ $ifNull: [ "$obSets_doc.label", {ch:'$obSets_doc.name',en:''}] }
                         }},
-        
+                   
                         { "$lookup": {
                             "let": { "obsID": "$obSets_doc.obs_doc._id" , 
                                     "obSetsID": "$obSets_doc._id" , 
                                     "patientID":"$obSets_doc.obs_doc.patientID",
+                                    "orderID":"$obSets_doc.obs_doc.orderID",
                                     "visitID":"$obSets_doc.obs_doc.visitID",
                                     "context": "$obSets_doc.obs_doc.context",
                                     "mappingOb":"$obSets_doc.obs_doc.mappingOb"},
@@ -1373,8 +1743,49 @@ for (let profileID of req.body.profileIDs){
                                                             "$eq": [ "$visitID", "$$visitID" ]
                                                         },
                                                         {
-                                                          "$eq": [ "$$context", visitType ]
-                                                      },
+                                                            "$eq": [ "$$context", null ]
+                                                        },
+                                                       
+                                                        
+                                                    ]
+                                                },
+                                                {
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$visitID", "$$visitID" ]
+                                                        },
+                                                        {
+                                                            "$in": [ "$$context",['image','lab','visit','record']  ]
+                                                        },
+                                                       
+                                                        
+                                                    ]
+                                                },
+                                                {
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$orderID", "$$orderID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$visitID", "$$visitID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$$context", 'order' ]
+                                                        },
+                                                       
+                                                       
                                                         
                                                     ]
                                                 },
@@ -1385,7 +1796,64 @@ for (let profileID of req.body.profileIDs){
                                                         },
                                                         {
                                                             "$eq": [ "$patientID", "$$patientID" ]
-                                                        }
+                                                        },
+                                                        {"$and":[{"$ne": [ req.body.procedureDate,null]},  
+                                                                {"$gt": [ "$$mappingOb.frameDays",0]},
+                                                                {"$lte": [ {"$subtract":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
+                                                                        {"$divide":  [{"$subtract":
+                                                                            [{"$toDate":req.body.visitDate}, 
+                                                                            {"$toDate":req.body.procedureDate} 
+                                                                            ] },
+                                                                        1000 * 3600 * 24 ]
+                                                                        } ]
+                                                                },
+                                                                {"$gte": [ {"$add":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
+                                                                {"$divide":  [{"$subtract":
+                                                                    [{"$toDate":req.body.visitDate}, 
+                                                                    {"$toDate":req.body.procedureDate} 
+                                                                    ] },
+                                                                1000 * 3600 * 24 ]
+                                                                } ]
+                                                            }]
+                                                        },
+                                                      
+                                                        
+                                                    ]
+                                                  },
+                                                  {"$and":[
+                                                    {
+                                                        "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
+                                                    },
+                                                    {
+                                                        "$eq": [ "$patientID", "$$patientID" ]
+                                                    },
+                                                      {"$eq": [ "$$mappingOb.frameDays",0]},
+                                                      {"$gte": [ "$$mappingOb.searchDays",
+                                                           {"$divide":
+                                                                    [{"$subtract":
+                                                                            [{"$toDate":req.body.visitDate}, 
+                                                                            {"$toDate":"$resultAt"} 
+                                                                            ] },
+                                                                    1000 * 3600 * 24 
+                                                                    ]
+
+                                                                 }
+                                                           
+                                                                ]
+                                                          }]
+                                                    },
+                                                  {
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                       
+                                                        {"$eq": [ "$$mappingOb.frameDays",0]},
+                                                        {"$eq": [ "$$mappingOb.searchDays",0]},
+                                                            
                                                       
                                                         
                                                     ]
@@ -1399,347 +1867,425 @@ for (let profileID of req.body.profileIDs){
       
                             "as": "obSets_doc.obs_doc.patientData"
                         }},
-
-                        //to get last value
                         
-                            {"$addFields": {
-                                "obSets_doc.obs_doc.patientData":
-                                    { "$arrayElemAt": [ "$obSets_doc.obs_doc.patientData", -1 ] }
-                            }
-                        },
+        {"$addFields": {
+            "obSets_doc.obs_doc.patientData":
+                { "$arrayElemAt": [ "$obSets_doc.obs_doc.patientData", -1 ] }
+         }
+       },
                      
-                        { "$lookup": {
-                            "let": { "mappingLab":"$obSets_doc.obs_doc.mappingLab", 
-                                      "patientID":"$obSets_doc.obs_doc.patientID" },
-                            "from": "labs",
-                            "pipeline":[
-                                {
-                                      "$match": {
-                                              "$expr": {
-                                                   "$and": [
-                                                        {
-                                                            "$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
-                                                        },
-                                                        {
-                                                            "$eq": [ "$patientID", "$$patientID" ]
-                                                        },
-                                                       // {
-                                                       //   "$gte": [ "$$mappingLab.searchDays",{"$subtract": [{"$toDate":req.body.visitDate}, "$resultAt"  ] } ]
-                                                     // },
-                                                        
-                                                    ]
+      { "$lookup": {
+         "let": { "mappingLab":"$obSets_doc.obs_doc.mappingLab", 
+                "patientID":"$obSets_doc.obs_doc.patientID" },
+         "from": "labs",
+         "pipeline":[
+                    {"$match": 
+                        {"$expr": 
+                            {
+                                "$and": [
+                                 {"$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
+                                 },
+                                  {"$eq": [ "$patientID", "$$patientID" ]
+                                 },
+                                  {"$or":[
+                                      {"$and":[{"$ne": [ req.body.procedureDate,null]},  
+                                               {"$gt": [ "$$mappingLab.frameDays",0]},
+                                               {"$lte": [ {"$subtract":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                                        {"$divide":  [{"$subtract":
+                                                            [{"$toDate":"$resultAt"}, 
+                                                            {"$toDate":req.body.procedureDate} 
+                                                            ] },
+                                                        1000 * 3600 * 24 ]
+                                                        } ]
+                                                },
+                                                {"$gt": [ {"$add":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                                {"$divide":  [{"$subtract":
+                                                    [{"$toDate":"$resultAt"}, 
+                                                    {"$toDate":req.body.procedureDate} 
+                                                    ] },
+                                                1000 * 3600 * 24 ]
+                                                } ]
+                                            }]
+                                        },
+                                    {"$and":[
+                                          {"$ne": [ req.body.procedureDate,null]},
+                                          {"$lte": [ "$$mappingLab.frameDays",0]},
+                                           {"$lte": [
+                                                {"$divide":
+                                                   [{"$subtract":
+                                                      [{"$toDate":"$resultAt"}, 
+                                                        {"$toDate":req.body.procedureDate} 
+                                                       ]
+                                                    },
+                                                    1000 * 3600 * 24 
+                                                  ]
+                                                 },0
+                                                 ]
                                               }
-                                              }
-                                          }
-                                  ],
+                                            ]
+                                      },
+                                      {"$and":[{"$eq": [ "$$mappingLab.frameDays",0]},
+                                                {"$gte": [ "$$mappingLab.searchDays",
+                                                         {"$divide":
+                                                                  [{"$subtract":
+                                                                          [{"$toDate":req.body.visitDate}, 
+                                                                          {"$toDate":"$resultAt"} 
+                                                                          ] },
+                                                                  1000 * 3600 * 24 
+                                                                  ]
+
+                                                               }
+                                                         
+                                                              ]
+                                                        }]
+                                        },
+                                    ]
+                                },
+                            ]
+                                
+                            }
+                        }
+                    }
+                            ],
       
                             "as": "obSets_doc.obs_doc.labData"
                         }},  
 
-                        //lookup lab collection
-        {"$addFields": {
-                        "obSets_doc.obs_doc.labData":   
-                        { "$cond": {
-                            if:{ "$eq": ["$obSets_doc.obs_doc.mappingLab.seiry", 0]},
-                            then:  { "$arrayElemAt": [ "$obSets_doc.obs_doc.labData", -1 ] },
-                            else: { "$arrayElemAt": [ "$obSets_doc.obs_doc.labData", -2 ] },
+                        {"$addFields": {
+                            "obSets_doc.obs_doc.labData":   
+                            { "$cond": {
+                                if:{ "$eq": ["$obSets_doc.obs_doc.mappingLab.seiry", 0]},
+                                then:  { "$arrayElemAt": [ "$obSets_doc.obs_doc.labData", -1 ] },
+                                else: { "$arrayElemAt": [ "$obSets_doc.obs_doc.labData", -2 ] },
+                                        }
                                     }
-                                }
-                                //last element
-                         }
-        },
-                        
-        /*    { "$unwind": {
-                            "path":'$obSets_doc.obs_doc.LabData',
-                            "preserveNullAndEmptyArrays": true
-            } },*/
-                  
-//asign lab data to ob value
-
-    
-                
-
-            {"$addFields": {
-                        "obSets_doc.obs_doc.values":{ $ifNull: [ "$obSets_doc.obs_doc.patientData.values", []] }
-                    }
+                                    //last element
+                             }
             },
-      
+                            
+            /*    { "$unwind": {
+                                "path":'$obSets_doc.obs_doc.LabData',
+                                "preserveNullAndEmptyArrays": true
+                } },*/
+                      
+    //asign lab data to ob value
     
-
-            //get lab value when patient data is null
-            {"$addFields": {
-                "obSets_doc.obs_doc.patientData":
-                               { "$cond": {
-                                   if :{
-                                    "$and": [
-                                        {'$eq': ["$obSets_doc.obs_doc.type", 'mapping lab']},
-                                        {"$eq": [ "obSets_doc.obs_doc.patientData", null ]} 
-                                    ]
-                               },
-                                   then:"$obSets_doc.obs_doc.labData",
-                                   else:"$obSets_doc.obs_doc.patientData"
-                                   
-                                   }
+        
+                    
+    
+                {"$addFields": {
+                            "obSets_doc.obs_doc.values":{ $ifNull: [ "$obSets_doc.obs_doc.patientData.values", []] }
+                        }
+                },
+          
+        
+                {"$addFields": {
+                    "obSets_doc.obs_doc.patientData":
+                                   { "$cond": {
+                                       if :{'$eq': ["$obSets_doc.obs_doc.type", 'mapping lab']},
+                                       then:"$obSets_doc.obs_doc.labData",
+                                       else:"$obSets_doc.obs_doc.patientData"
+                                       
+                                       }
+                               }
                            }
-                       }
-            },
-            {"$addFields": {
-                "obSets_doc.obs_doc.value":{ $ifNull: [ "$obSets_doc.obs_doc.patientData.value", ''] }
-            }
-    },
-
-            {"$addFields": {
-                "obSets_doc.obs_doc.label":{ $ifNull: [ "$obSets_doc.obs_doc.label", {ch:'$obSets_doc.obs_doc.name',en:''}] }
-            }
-    },
-         
-            {"$addFields": {
-                "obSets_doc.obs_doc.values":
-                { "$cond": {
-                    if :{"$and":[{"$ne": ["$obSets_doc.obs_doc.value", '']},
-                                 {"$in":["$obSets_doc.obs_doc.type",["number", "mapping ob","mapping", "mapping lab"]]}
-                                ]
-                            },
-                    then:{
-                     "$map":
-                        {
-                          input: "$obSets_doc.obs_doc.options",
-                          as: "option",
-                          in: { "$cond": 
-                                    { if:{ "$and":
-                                    [{ $gte:[{"$toDecimal":"$obSets_doc.obs_doc.value"}, "$$option.from" ] },
-                                    { $lt: [{"$toDecimal":"$obSets_doc.obs_doc.value"}, "$$option.to" ] }
-                                    ]
-                                    }, 
-                                    then: "$$option",
-                                    else:null
-                                    }
-                                }
-                        }
-                   },
-                   else:  { "$cond": {
-                                if :{"$and":[
-                                            {"$in":["$obSets_doc.obs_doc.type",["list"]]}
-                                            ]
-                                        },
-                                then:{
-                                "$map":
-                                    {
-                                    input: "$obSets_doc.obs_doc.options",
-                                    as: "option",
-                                    in: { "$cond": 
-                                        { if:{ "$and":
-                                                [{ "$in":["$$option.text", "$obSets_doc.obs_doc.values" ] }
-                                                
-                                                ]
-                                                }, 
-                                                then: "$$option",
-                                                else:null
-                                                }
-                                            }
-                                    }
-                            },
-                            else:[]
-                    
-                        }
-            }
-                    
-                    }
-            }
-        }
-    },
-    {"$addFields": {
-        "obSets_doc.obs_doc.values":
-        {$filter: {
-        input: "$obSets_doc.obs_doc.values",
-        as: "item",
-        cond: { $ne: [ "$$item", null ] }
-     }
-        }
-    }
-},
-{ "$unwind": {
-    "path":'$obSets_doc.obs_doc.values',
-    "preserveNullAndEmptyArrays": true
-} },
-
-//{"$addFields": {
-//    "obSets_doc.obs_doc.values.number":{ $ifNull: [ "$obSets_doc.obs_doc.values.number", 0] }
-//}
-//},
-    {"$group": {_id:{_id: "$_id",
-                        name:"$name",
-                        label:"$label",
-                        formType:"$formType",
-                        formStyle:"$formStyle",
-                        obSetAddsIn: '$obSets_doc.addsIn',
-                        obSetField: '$obSets_doc.field',
-                        obSetName:'$obSets_doc.name',
-                        obSetLabel:'$obSets_doc.label',
-                        obSetIndex:'$obSets_doc.index',
-                        obSetID:'$obSets_doc._id',
-                        obID:'$obSets_doc.obs_doc._id',
-                        obName:'$obSets_doc.obs_doc.name',
-                        obFormula:'$obSets_doc.obs_doc.formula',
-                        obLabel:'$obSets_doc.obs_doc.label',
-                        obOptions:'$obSets_doc.obs_doc.options',
-                        obAddsIn: '$obSets_doc.obs_doc.addsIn',
-                        obRequired: '$obSets_doc.obs_doc.required',
-                        obType:'$obSets_doc.obs_doc.type',
-                        obValue:'$obSets_doc.obs_doc.value',
-                        obIndex: '$obSets_doc.obs_doc.index',
-                        obContext: '$obSets_doc.obs_doc.context',
-                        obCalculationItems:'$obSets_doc.obs_doc.calculationItems',
-                        obSingleSelection:'$obSets_doc.obs_doc.singleSelection'
-                        
-                    },
-                obValues: {$push: '$obSets_doc.obs_doc.values'},
-                obNumber: {$sum: '$obSets_doc.obs_doc.values.number'}},
-                    
-                    
-    },
-
-  
-
-    {"$project":{
-        _id:'$_id._id',
-        name:'$_id.name',
-        label:'$_id.label',
-        formType:'$_id.formType',
-        formStyle:'$_id.formStyle',
-        obSetName:'$_id.obSetName',
-        obSetLabel:'$_id.obSetLabel',
-        obSetField:'$_id.obSetField',
-        obSetIndex:'$_id.obSetIndex',
-        obSetAddsIn:'$_id.obSetAddsIn',
-        obSetID: '$_id.obSetID',
-        obs:{ _id:'$_id.obID',
-             name: '$_id.obName',
-             label: '$_id.obLabel',
-             options:'$_id.obOptions',
-             addsIn:'$_id.obAddsIn',
-             required:'$_id.obRequired',
-            formula:'$_id.obFormula',
-             type:'$_id.obType', 
-             value:'$_id.obValue',
-             index:'$_id.obIndex',
-             context:'$_id.obContext',
-             calculationItems:'$_id.obCalculationItems',
-             singleSelection:'$_id.obSingleSelection',
-             values:'$obValues',
-             number:'$obNumber'
-    }
-    }
-},
-   
-{ "$sort": { "obs.index": 1 }},          
-
-    {"$group": {_id:{_id: "$_id",
-                    name:"$name",
-                    label:"$label",
-                    formType:"$formType", 
-                    formStyle:"$formStyle", 
-                    obSetAddsIn:'$obSetAddsIn',
-                    obSetField:'$obSetField',
-                    obSetIndex:'$obSetIndex',
-                    obSetName:'$obSetName',
-                    obSetLabel:'$obSetLabel',
-                    obSetID:'$obSetID'},
-            obs: {$push: '$obs'},
-            obsSum: {$sum: '$obs.number'},
-                  
+                },
+                {"$addFields": {
+                    "obSets_doc.obs_doc.value":{ $ifNull: [ "$obSets_doc.obs_doc.patientData.value", ''] }
                 }
         },
-
-      
-
+    
+                {"$addFields": {
+                    "obSets_doc.obs_doc.label":{ $ifNull: [ "$obSets_doc.obs_doc.label", {ch:'$obSets_doc.obs_doc.name',en:''}] }
+                }
+        },
+             
+                {"$addFields": {
+                    "obSets_doc.obs_doc.values":
+                    { "$cond": {
+                        if :{"$and":[{"$ne": ["$obSets_doc.obs_doc.value", '']},
+                                     {"$in":["$obSets_doc.obs_doc.type",["number", "mapping ob","mapping", "mapping lab"]]}
+                                    ]
+                                },
+                        then:{
+                         "$map":
+                            {
+                              input: "$obSets_doc.obs_doc.options",
+                              as: "option",
+                              in: { "$cond": 
+                                        { if:{ "$and":
+                                        [{ $gte:[{"$toDecimal":"$obSets_doc.obs_doc.value"}, "$$option.from" ] },
+                                        { $lt: [{"$toDecimal":"$obSets_doc.obs_doc.value"}, "$$option.to" ] }
+                                        ]
+                                        }, 
+                                        then: "$$option",
+                                        else:null
+                                        }
+                                    }
+                            }
+                       },
+                       else:  { "$cond": {
+                                    if :{"$and":[
+                                                {"$in":["$obSets_doc.obs_doc.type",["list"]]}
+                                                ]
+                                            },
+                                    then:{
+                                    "$map":
+                                        {
+                                        input: "$obSets_doc.obs_doc.options",
+                                        as: "option",
+                                        in: { "$cond": 
+                                            { if:{ "$and":
+                                                    [{ "$in":["$$option.text", "$obSets_doc.obs_doc.values" ] }
+                                                    
+                                                    ]
+                                                    }, 
+                                                    then: "$$option",
+                                                    else:null
+                                                    }
+                                                }
+                                        }
+                                },
+                                else:[]
+                        
+                            }
+                }
+                        
+                        }
+                }
+            }
+        },
+        {"$addFields": {
+            "obSets_doc.obs_doc.values":
+            {$filter: {
+            input: "$obSets_doc.obs_doc.values",
+            as: "item",
+            cond: { $ne: [ "$$item", null ] }
+         }
+            }
+        }
+    },
+    { "$unwind": {
+        "path":'$obSets_doc.obs_doc.values',
+        "preserveNullAndEmptyArrays": true
+    } },
+    
+    //{"$addFields": {
+    //    "obSets_doc.obs_doc.values.number":{ $ifNull: [ "$obSets_doc.obs_doc.values.number", 0] }
+    //}
+    //},
+        {"$group": {_id:{_id: "$_id",
+                            name:"$name",
+                            label:"$label",
+                            formType:"$formType",
+                            image:'$image',
+                            counter:'$counter',
+                            formStyle:"$formStyle",
+                            obSetAddsIn: '$obSets_doc.addsIn',
+                            obSetField: '$obSets_doc.field',
+                            obSetName:'$obSets_doc.name',
+                            obSetImage:'$obSets_doc.image',
+                            obSetLabel:'$obSets_doc.label',
+                            obSetIndex:'$obSets_doc.index',
+                            obSetID:'$obSets_doc._id',
+                            obID:'$obSets_doc.obs_doc._id',
+                            obDesc:'$obSets_doc.obs_doc.desc',
+                            obName:'$obSets_doc.obs_doc.name',
+                            obFormula:'$obSets_doc.obs_doc.formula',
+                            obLabel:'$obSets_doc.obs_doc.label',
+                            obOptions:'$obSets_doc.obs_doc.options',
+                            obAddsIn: '$obSets_doc.obs_doc.addsIn',
+                            obRequired: '$obSets_doc.obs_doc.required',
+                            obMappingOb: '$obSets_doc.obs_doc.mappingOb',
+                            obType:'$obSets_doc.obs_doc.type',
+                            obValue:'$obSets_doc.obs_doc.value',
+                            obIndex: '$obSets_doc.obs_doc.index',
+                            obContext: '$obSets_doc.obs_doc.context',
+                            obCalculationItems:'$obSets_doc.obs_doc.calculationItems',
+                            obSingleSelection:'$obSets_doc.obs_doc.singleSelection',
+                            obEducation:'$obSets_doc.obs_doc.education',
+                            obImage:'$obSets_doc.obs_doc.image'
+                            
+                        },
+                    obValues: {$push: '$obSets_doc.obs_doc.values'},
+                    obNumber: {$sum: '$obSets_doc.obs_doc.values.number'}},
+                        
+                        
+        },
+    
+     
+    
         {"$project":{
             _id:'$_id._id',
             name:'$_id.name',
             label:'$_id.label',
+            image:'$_id.image',
+            counter:'$_id.counter',
             formType:'$_id.formType',
             formStyle:'$_id.formStyle',
             obSetName:'$_id.obSetName',
+            obSetImage:'$_id.obSetImage',
             obSetLabel:'$_id.obSetLabel',
-            obSetAddsIn:'$_id.obSetAddsIn',
             obSetField:'$_id.obSetField',
             obSetIndex:'$_id.obSetIndex',
+            obSetAddsIn:'$_id.obSetAddsIn',
             obSetID: '$_id.obSetID',
-            obs:{
-                $map:
-                    {
-                      input: "$obs",
-                       as: "ob",
-                       in: 
-                        { "$cond": {
-                            if:{ "$eq": ["$$ob.type", 'calculation']},
-                            then: {"value":"$obsSum", 
-                                    "_id":"$$ob._id",
-                                    "name":"$$ob.name",
-                                    "label":"$$ob.label",
-                                    "type":"$$ob.type",
-                                    "addsIn": "$$ob.addIn",
-                                    "required": "$$ob.required",
-                                    "options": "$$ob.options",
-                                    "index":"$$ob.index",
-                                    "context":"$$ob.context",
-                                    "calculationItems":'$$ob.calculationItems',
-                                    "singleSelection":'$$ob.singleSelection',
-                                    "values":{
-                                        "$map":
-                                                {
-                                                input: "$$ob.options",
-                                                as: "option",
-                                                in: { "$cond": 
-                                                            { if:{ "$and":
-                                                            [{ $gte:[{"$toDecimal":"$obsSum"}, "$$option.from" ] },
-                                                            { $lt: [{"$toDecimal":"$obsSum"}, "$$option.to" ] }
-                                                            ]
-                                                            }, 
-                                                            then: "$$option",
-                                                            else:null
-                                                            }
-                                                        }
-                                                }
-                                        }
-                                    },
-                            else: "$$ob"
-                                    }
-                                }
-                            }
-                        }
-    }},
-
-
-
-      
-        {'$addFields':{'obSets':{'name':'$obSetName','label':'$obSetLabel','field':'$obSetField','index':'$obSetIndex',   '_id':'$obSetID', 'addsIn':'$obSetAddsIn', 'obs':'$obs'}}},
-
-        { "$sort": { "obSets.index": 1 }},  
-        
-        {"$group": {_id:{_id: "$_id",name:"$name",label:"$label",formType:"$formType",formStyle:"$formStyle"},
-                    
-                        obSets: {$push: '$obSets'}}},
-
+            obs:{ _id:'$_id.obID',
+                 name: '$_id.obName',
+                 desc:'$_id.obDesc',
+                 label: '$_id.obLabel',
+                 options:'$_id.obOptions',
+                 addsIn:'$_id.obAddsIn',
+                 required:'$_id.obRequired',
+                mappingOb:'$_id.obMappingOb',
+                formula:'$_id.obFormula',
+                 type:'$_id.obType', 
+                 value:'$_id.obValue',
+                 index:'$_id.obIndex',
+                 context:'$_id.obContext',
+                 calculationItems:'$_id.obCalculationItems',
+                 singleSelection:'$_id.obSingleSelection',
+                 education:'$_id.obEducation',
+                 image:'$_id.obImage',
+                 values:'$obValues',
+                 number:'$obNumber'
+                 
+        }
+        }
+    },
+       
+    { "$sort": { "obs.index": 1 }},          
+        {"$group": {_id:{_id: "$_id",
+                        name:"$name",
+                        label:"$label",
+                        image:"$image",
+                        counter:'$counter',
+                        formType:"$formType", 
+                        formStyle:"$formStyle", 
+                        obSetAddsIn:'$obSetAddsIn',
+                        obSetField:'$obSetField',
+                        obSetIndex:'$obSetIndex',
+                        obSetName:'$obSetName',
+                        obSetImage:'$obSetImage',
+                        obSetLabel:'$obSetLabel',
+                        obSetID:'$obSetID'},
+                obs: {$push: '$obs'},
+                obsSum: {$sum: '$obs.number'},
+                      
+                    }
+            },
+    
+          
+    
             {"$project":{
                 _id:'$_id._id',
                 name:'$_id.name',
                 label:'$_id.label',
+                image:'$_id.image',
+                counter:'$_id.counter',
                 formType:'$_id.formType',
                 formStyle:'$_id.formStyle',
-                obSets:1
-                    
-            }},
-            { $sort : { name: 1 } }
+                obSetName:'$_id.obSetName',
+                obSetImage:'$_id.obSetImage',
+                obSetLabel:'$_id.obSetLabel',
+                obSetAddsIn:'$_id.obSetAddsIn',
+                obSetField:'$_id.obSetField',
+                obSetIndex:'$_id.obSetIndex',
+                obSetID: '$_id.obSetID',
+                obs:{
+                    $map:
+                        {
+                          input: "$obs",
+                           as: "ob",
+                           in: 
+                            { "$cond": {
+                                if:{ "$eq": ["$$ob.type", 'calculation']},
+                                then: {"value":"$obsSum", 
+                                        "_id":"$$ob._id",
+                                        "name":"$$ob.name",
+                                        "label":"$$ob.label",
+                                        "type":"$$ob.type",
+                                        "addsIn": "$$ob.addsIn",
+                                        "desc":"$$ob.desc",
+                                        "required": "$$ob.required",
+                                        "options": "$$ob.options",
+                                        "index":"$$ob.index",
+                                        "context":"$$ob.context",
+                                        "calculationItems":'$$ob.calculationItems',
+                                        "singleSelection":'$$ob.singleSelection',
+                                        "values":{
+                                            "$map":
+                                                    {
+                                                    input: "$$ob.options",
+                                                    as: "option",
+                                                    in: { "$cond": 
+                                                                { if:{ "$and":
+                                                                [{ $gte:[{"$toDecimal":"$obsSum"}, "$$option.from" ] },
+                                                                { $lt: [{"$toDecimal":"$obsSum"}, "$$option.to" ] }
+                                                                ]
+                                                                }, 
+                                                                then: "$$option",
+                                                                else:null
+                                                                }
+                                                            }
+                                                    }
+                                            }
+                                        },
+                                else: "$$ob"
+                                        }
+                                    }
+                                }
+                            }
+        }},
+    
+    
+        {
+            $addFields: {
+                disqualified: {
+                    $filter: {
+                        input: "$ob.values",
+                        as: "d",
+                        cond: {
+                            $ne: [ "$$d.text", null ]
+                        }
+                    }
+                }
+            }
+        },
+          
+          
+            {'$addFields':{'obSets':{'name':'$obSetName','image':'$obSetImage','label':'$obSetLabel','field':'$obSetField','index':'$obSetIndex',   '_id':'$obSetID', 'addsIn':'$obSetAddsIn', 'obs':'$obs'}}},
+    
+            { "$sort": { "obSets.index": 1 }},  
+            
+            {"$group": {_id:{_id: "$_id", counter:'$counter',name:"$name",label:"$label",formType:"$formType",formStyle:"$formStyle"},
+                        
+                            obSets: {$push: '$obSets'}}},
+    
+                {"$project":{
+                    _id:'$_id._id',
+                    name:'$_id.name',
+                    counter:'$_id.counter',
+                    image:'$_id.image',
+                    label:'$_id.label',
+                    formType:'$_id.formType',
+                    formStyle:'$_id.formStyle',
+                    obSets:1
+                        
+                }},
+                { $sort : { name: 1 } }
+
+
 
 ];
+     
                 
             }
         Category.aggregate(
                  pipeline,
                 function(err, result)   {
-                console.log ('_id',req.body.formIDs)
-                console.log ('result',result)
+               // console.log ('_id',req.body.formIDs)
+              //  console.log ('result',result)
                 if(err) {
                     console.log(err);
                 }
@@ -1822,14 +2368,19 @@ exports.getFormById = function(req, res, next) {
                    
     
                     {'$addFields':{'obSets_doc':{'name':'$obSets_doc.name', 
+                                                'image':'$obSets_doc.image', 
                                                 '_id':'$obSets_doc._id', 
                                                 'addsIn':'$obSets.addsIn', 
                                                 'index':'$obSets.index',
+                                               
                                                 'field':'$obSets.field',
                                                 'obs_doc':{//'name':'$obSets_doc.obs.name',
                                                             //'_id':'$obSets_doc.obs._id',
                                                             'addsIn':'$obSets_doc.obs.addsIn', 
+                                                            'required':'$obSets_doc.obs.required', 
+                                                            'index':'$obSets_doc.obs.index', 
                                                             'options':'$obSets_doc.obs_doc.options',
+                                                            'education':'$obSets_doc.obs_doc.education',
                                                              'seiry': '$obSets_doc.obs_doc.seiry'}}}},
     
         {"$addFields": {
@@ -1842,19 +2393,22 @@ exports.getFormById = function(req, res, next) {
         {"$addFields": {
            "label":{ $ifNull: [ "$label", {ch:'$name',en:''}] }
         }}, 
-        {"$addFields": {
-            "obSets_doc.obs_doc.education":{ $ifNull: [ "$obSets_doc.obs_doc.education", {ch:'$obSets_doc.obs_doc.resource',en:''}] }
-        }}, 
+        
         { '$sort' : { 'obSets_doc.obs_doc.index': 1 } },
         
                     {"$group": {_id:{_id: "$_id",
                                 name:"$name",
+                                index:"$index",
                                 label:'$label',
+                                image:'$image',
+                                counter:'$counter',
                                 formType:"$formType",
                                 formStyle:"$formStyle",  
                                addsIn:'$obSets_doc.addsIn',
                                obSetField:'$obSets_doc.field',
+                               obSetDesc:'$obSets_doc.desc',
                                obSetName:'$obSets_doc.name',
+                               obSetImage:'$obSets_doc.image',
                                obSetLabel:'$obSets_doc.label',
                                obSetIndex:'$obSets_doc.index',
                                obSetID:'$obSets_doc._id'},
@@ -1864,13 +2418,18 @@ exports.getFormById = function(req, res, next) {
                     {"$project":{
                                     _id:'$_id._id',
                                     name:'$_id.name',
+                                    index:"$_id.index",
                                     label:'$_id.label',
+                                    image:'$_id.image',
+                                    counter:'$_id.counter',
                                     formType:'$_id.formType',
                                     formStyle:"$_id.formStyle",  
                                     obSetName:'$_id.obSetName',
+                                    obSetImage:'$_id.obSetImage',
                                     obSetField:'$_id.obSetField',
                                     obSetLabel:'$_id.obSetLabel',
                                     obSetIndex:'$_id.obSetIndex',
+                                    obSetDesc:'$_id.obSetDesc',
                                     addsIn:'$_id.addsIn',
                                     obSetID: '$_id.obSetID',
                                     obs:1
@@ -1878,16 +2437,33 @@ exports.getFormById = function(req, res, next) {
                             }},
                                 
     
-                    {'$addFields':{'obSets':{'label':'$obSetLabel', 'index':'$obSetIndex','field':'$obSetField','name':'$obSetName', '_id':'$obSetID', 'addsIn':'$addsIn', 'obs':'$obs'}}},
+                    {'$addFields':{'obSets':
+                    {'label':'$obSetLabel',
+                    'image':'$obSetImage',
+                     'index':'$obSetIndex',
+                     'field':'$obSetField',
+                     'name':'$obSetName', 
+                     'desc':'$obSetDesc', 
+                     '_id':'$obSetID', 
+                     'addsIn':'$addsIn', 
+                     'obs':'$obs'}}},
     
                     { $sort : { 'obSets.index': 1 } },
-                    {"$group": {_id:{_id: "$_id",name:"$name",label:'$label',formType:"$formType"},
-                            
-                                obSets: {$push: '$obSets'}}},
+                    {"$group": {_id:
+                        {_id: "$_id",
+                        name:"$name",
+                        counter:'$counter',
+                        image:"$image",
+                        label:'$label',
+                        formType:"$formType"},
+                         obSets: {$push: '$obSets'}}},
     
                     {"$project":{
                         _id:'$_id._id',
+                        index:'$_id.index',
                         name:'$_id.name',
+                        image:'$_id.image',
+                        counter:'$_id.counter',
                         label:'$_id.label',
                         formType:'$_id.formType',
                         formStyle:'$_id.formStyle',
@@ -1895,215 +2471,250 @@ exports.getFormById = function(req, res, next) {
                             
                     }},
     
-                    { $sort : { name: 1 } }
+                  
                 ];
             
             }
-        else {
-            pipeline= [
-                { "$match": { "_id": {$in:formIDs } }},
+    else {
+        pipeline= [
+            { "$match": { "_id": {$in:formIDs } }},
+                    
                         
-                            
-                            { "$unwind": 
-                              "$obSets"
-                               // {"path": "$obSets",
-                               // "preserveNullAndEmptyArrays": true}
-                                },
-                           
-            
-                            { "$lookup": {
-                                "let": { "obSetsID": "$obSets._id" },
-                                "from": "categories",
-                                "pipeline": [
-                                { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obSetsID"} ] } } }
-                                ],
-                                "as": "obSets_doc"
-                            }},
+                        { "$unwind": 
+                            "$obSets"
+                            // {"path": "$obSets",
+                            // "preserveNullAndEmptyArrays": true}
+                            },
                         
-                          
-                         { "$lookup": {
+        
+                        { "$lookup": {
                             "let": { "obSetsID": "$obSets._id" },
-                            "from": "orderitems",
+                            "from": "categories",
                             "pipeline": [
                             { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obSetsID"} ] } } }
                             ],
-                            "as": "obSets_order"
+                            "as": "obSets_doc"
+                        }},
+                    
+                        
+                        { "$lookup": {
+                        "let": { "obSetsID": "$obSets._id" },
+                        "from": "orderitems",
+                        "pipeline": [
+                        { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obSetsID"} ] } } }
+                        ],
+                        "as": "obSets_order"
+                    }},
+    
+                    { "$unwind": {
+                        "path":'$obSets_doc',
+                        "preserveNullAndEmptyArrays": true
+                } },
+                { "$unwind": {
+                    "path":'$obSets_order',
+                    "preserveNullAndEmptyArrays": true
+            } },
+                    {"$addFields": {
+                        "obSets_doc":
+                                        { "$cond": {
+                                            if :{'$gt': ["$obSets_doc", null]},
+                                            then:"$obSets_doc",
+                                            else:"$obSets_order"
+                                            
+                                            }
+                                    }
+                                }
+                            },
+                    
+                        { "$unwind": 
+                        // '$obSets_doc.obs'
+                        {
+                            "path": '$obSets_doc.obs',
+                            "preserveNullAndEmptyArrays": true}
+                        },
+        
+                        { "$lookup": {
+                            "let": { "obsID": "$obSets_doc.obs._id" },
+                            "from": "categories",
+                            "pipeline": [
+                            { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obsID"} ] } } }
+                            ],
+                            "as": "obSets_doc.obs_doc"
                         }},
         
                         { "$unwind": {
-                            "path":'$obSets_doc',
+                            "path":'$obSets_doc.obs_doc',
                             "preserveNullAndEmptyArrays": true
                     } },
-                    { "$unwind": {
-                        "path":'$obSets_order',
-                        "preserveNullAndEmptyArrays": true
-                } },
+                    {"$addFields": {
+                        "label":{ $ifNull: [ "$label", {ch:'$name',en:''}] }
+                    }},
+                        {'$addFields':{'obSets_doc':{'name':'$obSets_doc.name', 
+                                                    '_id':'$obSets_doc._id', 
+                                                    'image':'$obSets_doc.image',
+                                                    'addsIn':'$obSets.addsIn', 
+                                                    'index':'$obSets.index',
+                                                    'field':'$obSets.field',
+                                                    'obs_doc':{//'name':'$obSets_doc.obs.name',
+                                                                //'_id':'$obSets_doc.obs._id',
+                                                                'patientID': req.body.patientID,
+                                                                'visitID': req.body.visitID,
+                                                                'orderID': req.body.orderID,
+                                                                'addsIn':'$obSets_doc.obs.addsIn',
+                                                                'required':'$obSets_doc.obs.required',
+                                                                'index':'$obSets_doc.obs.index',
+                                                                
+                                                                //'options':'$obSets_doc.obs_doc.options'
+                                                            }}}},
                         {"$addFields": {
-                            "obSets_doc":
-                                           { "$cond": {
-                                               if :{'$gt': ["$obSets_doc", null]},
-                                               then:"$obSets_doc",
-                                               else:"$obSets_order"
-                                               
-                                               }
-                                       }
-                                   }
-                               },
-                        
-                            { "$unwind": 
-                           // '$obSets_doc.obs'
-                            {
-                                "path": '$obSets_doc.obs',
-                                "preserveNullAndEmptyArrays": true}
-                         },
-            
-                            { "$lookup": {
-                                "let": { "obsID": "$obSets_doc.obs._id" },
-                                "from": "categories",
-                                "pipeline": [
-                                { "$match": { "$expr": { "$eq": [ {"$toString":"$_id"}, {"$toString":"$$obsID"} ] } } }
-                                ],
-                                "as": "obSets_doc.obs_doc"
-                            }},
-            
-                            { "$unwind": {
-                                "path":'$obSets_doc.obs_doc',
-                                "preserveNullAndEmptyArrays": true
-                        } },
-                        {"$addFields": {
-                            "label":{ $ifNull: [ "$label", {ch:'$name',en:''}] }
+                            "obSets_doc.label":{ $ifNull: [ "$obSets_doc.label", {ch:'$obSets_doc.name',en:''}] }
                         }},
-                            {'$addFields':{'obSets_doc':{'name':'$obSets_doc.name', 
-                                                        '_id':'$obSets_doc._id', 
-                                                        'addsIn':'$obSets.addsIn', 
-                                                        'index':'$obSets.index',
-                                                        'field':'$obSets.field',
-                                                        'obs_doc':{//'name':'$obSets_doc.obs.name',
-                                                                    //'_id':'$obSets_doc.obs._id',
-                                                                    'patientID': req.body.patientID,
-                                                                    'visitID': req.body.visitID,
-                                                                    'orderID': req.body.orderID,
-                                                                    'addsIn':'$obSets_doc.obs.addsIn',
-                                                                    'required':'$obSets_doc.obs.required',
-                                                                    'index':'$obSets_doc.obs.index',
-                                                                  
-                                                                    //'options':'$obSets_doc.obs_doc.options'
-                                                                }}}},
-                         {"$addFields": {
-                                "obSets_doc.label":{ $ifNull: [ "$obSets_doc.label", {ch:'$obSets_doc.name',en:''}] }
-                            }},
-            
-                            { "$lookup": {
-                                "let": { "obsID": "$obSets_doc.obs_doc._id" , 
-                                        "obSetsID": "$obSets_doc._id" , 
-                                        "patientID":"$obSets_doc.obs_doc.patientID",
-                                        "orderID":"$obSets_doc.obs_doc.orderID",
-                                        "visitID":"$obSets_doc.obs_doc.visitID",
-                                        "context": "$obSets_doc.obs_doc.context",
-                                        "mappingOb":"$obSets_doc.obs_doc.mappingOb"},
-                                "from": "datas",
-                                "pipeline":[
-                                    {
-                                          "$match": {
-                                                  "$expr": {
-                                                      "$or":[
-                                                          {
-                                                        "$and": [
-                                                            {
-                                                                "$eq": [ "$obID", {"$toString":"$$obsID"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$patientID", "$$patientID" ]
-                                                            },
-                                                            {
-                                                              "$eq": [ "$$context", patientType ]
-                                                          },
-                                                            
-                                                        ]
-                                                      },
-                                                      {
-                                                        "$and": [
-                                                            {
-                                                                "$eq": [ "$obID", {"$toString":"$$obsID"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$patientID", "$$patientID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ {"$toString":"$problemItemID"}, {"$toString":"$$obSetsID" }]
-                                                            },
-                                                        ]
-                                                      },
-                                                      {
-                                                        "$and": [
-                                                            {
-                                                                "$eq": [ "$obID", {"$toString":"$$obsID"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$patientID", "$$patientID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ {"$toString":"$medicationItemID"}, {"$toString":"$$obSetsID"} ]
-                                                            },
-                                                        ]
-                                                      },
-                                                    {
-                                                        "$and": [
-                                                            {
-                                                                "$eq": [ "$obID", {"$toString":"$$obsID"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$patientID", "$$patientID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$visitID", "$$visitID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$$context", null ]
-                                                            },
-                                                           
-                                                            
-                                                        ]
+        
+                        { "$lookup": {
+                            "let": { "obsID": "$obSets_doc.obs_doc._id" , 
+                                    "obSetsID": "$obSets_doc._id" , 
+                                    "patientID":"$obSets_doc.obs_doc.patientID",
+                                    "orderID":"$obSets_doc.obs_doc.orderID",
+                                    "visitID":"$obSets_doc.obs_doc.visitID",
+                                    "context": "$obSets_doc.obs_doc.context",
+                                    "mappingOb":"$obSets_doc.obs_doc.mappingOb"},
+                            "from": "datas",
+                            "pipeline":[
+                                {
+                                        "$match": {
+                                                "$expr": {
+                                                    "$or":[
+                                                        {
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$$context", patientType ]
+                                                        },
+                                                        
+                                                    ]
                                                     },
                                                     {
-                                                        "$and": [
-                                                            {
-                                                                "$eq": [ "$obID", {"$toString":"$$obsID"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$patientID", "$$patientID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$visitID", "$$visitID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$$context", 'visit' ]
-                                                            },
-                                                           
-                                                            
-                                                        ]
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ {"$toString":"$problemItemID"}, {"$toString":"$$obSetsID" }]
+                                                        },
+                                                    ]
                                                     },
                                                     {
-                                                        "$and": [
-                                                            {
-                                                                "$eq": [ "$obID", {"$toString":"$$obsID"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$patientID", "$$patientID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$orderID", "$$orderID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$visitID", "$$visitID" ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$$context", 'order' ]
-                                                            },
-                                                           
-                                                           
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ {"$toString":"$medicationItemID"}, {"$toString":"$$obSetsID"} ]
+                                                        },
+                                                    ]
+                                                    },
+                                                {
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$visitID", "$$visitID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$$context", null ]
+                                                        },
+                                                        
+                                                        
+                                                    ]
+                                                },
+                                                {
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$visitID", "$$visitID" ]
+                                                        },
+                                                        {
                                                             
-                                                        ]
+                                                            "$in": [ "$$context",['image','lab','visit', 'record']  ]
+                                                            
+                                                        },
+                                                        
+                                                        
+                                                    ]
+                                                },
+                                                {
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$obsID"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$orderID", "$$orderID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$visitID", "$$visitID" ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$$context", 'order' ]
+                                                        },
+                                                        
+                                                        
+                                                        
+                                                    ]
+                                                },
+                                                {
+                                                    "$and": [
+                                                        {
+                                                            "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
+                                                        },
+                                                        {
+                                                            "$eq": [ "$patientID", "$$patientID" ]
+                                                        },
+                                                        {"$and":[//{"$ne": [ req.body.procedureDate,null]},  
+                                                                {"$eq": [ "$$mappingOb.frameDays",0]},
+                                                                {"$gt": [ "$$mappingOb.visitFrameDays",0]},
+                                                                {"$lte": [ {"$subtract":["$$mappingOb.visitFrameDays","$$mappingOb.searchDays"]},
+                                                                        {"$divide":  [{"$subtract":
+                                                                            [{"$toDate":req.body.visitDate}, 
+                                                                            {"$toDate":"$createdAt"} 
+                                                                            ] },
+                                                                        1000 * 3600 * 24 ]
+                                                                        } ]
+                                                                },
+                                                                {"$gte": [ {"$add":["$$mappingOb.visitFrameDays","$$mappingOb.searchDays"]},
+                                                                {"$divide":  [{"$subtract":
+                                                                    [{"$toDate":req.body.visitDate}, 
+                                                                    {"$toDate":"$createdAt"} 
+                                                                    ] },
+                                                                1000 * 3600 * 24 ]
+                                                                } ]
+                                                            }]
+                                                        },
+                                                        
+                                                        
+                                                    ]
                                                     },
                                                     {
                                                         "$and": [
@@ -2113,11 +2724,12 @@ exports.getFormById = function(req, res, next) {
                                                             {
                                                                 "$eq": [ "$patientID", "$$patientID" ]
                                                             },
-                                                            {"$and":[{"$ne": [ req.body.procedureDate,null]},  
+                                                            {"$and":[//{"$ne": [ req.body.visitDate,null]},  
                                                                     {"$gt": [ "$$mappingOb.frameDays",0]},
+                                                                    {"$eq": [ "$$mappingOb.visitFrameDays",0]},
                                                                     {"$lte": [ {"$subtract":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
                                                                             {"$divide":  [{"$subtract":
-                                                                                [{"$toDate":req.body.visitDate}, 
+                                                                                [{"$toDate":"$createdAt"}, 
                                                                                 {"$toDate":req.body.procedureDate} 
                                                                                 ] },
                                                                             1000 * 3600 * 24 ]
@@ -2125,442 +2737,564 @@ exports.getFormById = function(req, res, next) {
                                                                     },
                                                                     {"$gte": [ {"$add":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
                                                                     {"$divide":  [{"$subtract":
-                                                                        [{"$toDate":req.body.visitDate}, 
+                                                                        [{"$toDate":"$createdAt"}, 
                                                                         {"$toDate":req.body.procedureDate} 
                                                                         ] },
                                                                     1000 * 3600 * 24 ]
                                                                     } ]
                                                                 }]
                                                             },
-                                                          
+                                                            
                                                             
                                                         ]
-                                                      },
-                                                      {"$and":[
+                                                        },
+                                                        {
+                                                            "$and": [
+                                                                {
+                                                                    "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
+                                                                },
+                                                                {
+                                                                    "$eq": [ "$patientID", "$$patientID" ]
+                                                                },
+                                                                {"$and":[//{"$ne": [ req.body.visitDate,null]},  
+                                                                        {"$gt": [ "$$mappingOb.frameDays",0]},
+                                                                        {"$eq": [ "$$mappingOb.visitFrameDays",0]},
+                                                                        {"$lte": [ {"$subtract":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
+                                                                                {"$divide":  [{"$subtract":
+                                                                                    [
+                                                                                    {"$toDate":req.body.procedureDate},
+                                                                                    {"$toDate":"$createdAt"}
+                                                                                    ] },
+                                                                                1000 * 3600 * 24 ]
+                                                                                } ]
+                                                                        },
+                                                                        {"$gte": [ {"$add":["$$mappingOb.frameDays","$$mappingOb.searchDays"]},
+                                                                        {"$divide":  [{"$subtract":
+                                                                            [
+                                                                            {"$toDate":req.body.procedureDate},
+                                                                            {"$toDate":"$createdAt"}
+                                                                            ] },
+                                                                        1000 * 3600 * 24 ]
+                                                                        } ]
+                                                                    }]
+                                                                },
+                                                                
+                                                                
+                                                            ]
+                                                            },
+                                                    {"$and":[
+                                                    {
+                                                        "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
+                                                    },
+                                                    {
+                                                        "$eq": [ "$patientID", "$$patientID" ]
+                                                    },
+                                                    {"$eq": [ "$$mappingOb.frameDays",0]},
+                                                    {"$eq": [ "$$mappingOb.visitFrameDays",0]},
+                                                    {"$gte": [ "$$mappingOb.searchDays",
+                                                        {"$divide":
+                                                                [{"$subtract":
+                                                                        [{"$toDate":req.body.visitDate}, 
+                                                                        {"$toDate":"$createAt"} 
+                                                                        ] },
+                                                                1000 * 3600 * 24 
+                                                                ]
+
+                                                                }
+                                                        
+                                                            ]
+                                                        }]
+                                                },
+                                                //search for non-visit context
+                                                    {
+                                                    "$and": [
                                                         {
                                                             "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
                                                         },
                                                         {
                                                             "$eq": [ "$patientID", "$$patientID" ]
                                                         },
-                                                          {"$eq": [ "$$mappingOb.frameDays",0]},
-                                                          {"$gte": [ "$$mappingOb.searchDays",
-                                                               {"$divide":
-                                                                        [{"$subtract":
-                                                                                [{"$toDate":req.body.visitDate}, 
-                                                                                {"$toDate":"$resultAt"} 
-                                                                                ] },
-                                                                        1000 * 3600 * 24 
-                                                                        ]
-  
-                                                                     }
-                                                               
-                                                                    ]
-                                                              }]
-                                                        },
-                                                      {
-                                                        "$and": [
-                                                            {
-                                                                "$eq": [ "$obID", {"$toString":"$$mappingOb._id"} ]
-                                                            },
-                                                            {
-                                                                "$eq": [ "$patientID", "$$patientID" ]
-                                                            },
-                                                           
-                                                            {"$eq": [ "$$mappingOb.frameDays",0]},
-                                                            {"$eq": [ "$$mappingOb.searchDays",0]},
-                                                                
-                                                          
+                                                        
+                                                        {"$eq": [ "$$mappingOb.frameDays",0]},
+                                                        {"$eq": [ "$$mappingOb.searchDays",0]},
                                                             
-                                                        ]
-                                                      },
-                                                ]
-                                                      
-                                                  }
-                                                  }
-                                              }
-                                      ],
-          
-                                "as": "obSets_doc.obs_doc.patientData"
-                            }},
-                            
-            {"$addFields": {
-                "obSets_doc.obs_doc.patientData":
-                    { "$arrayElemAt": [ "$obSets_doc.obs_doc.patientData", -1 ] }
-             }
-           },
-                         
-          { "$lookup": {
-             "let": { "mappingLab":"$obSets_doc.obs_doc.mappingLab", 
-                    "patientID":"$obSets_doc.obs_doc.patientID" },
-             "from": "labs",
-             "pipeline":[
-                        {"$match": 
-                            {"$expr": 
-                                {
-                                    "$and": [
-                                     {"$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
-                                     },
-                                      {"$eq": [ "$patientID", "$$patientID" ]
-                                     },
-                                      {"$or":[
-                                          {"$and":[{"$ne": [ req.body.procedureDate,null]},  
-                                                   {"$gt": [ "$$mappingLab.frameDays",0]},
-                                                   {"$lte": [ {"$subtract":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
-                                                            {"$divide":  [{"$subtract":
-                                                                [{"$toDate":"$resultAt"}, 
-                                                                {"$toDate":req.body.procedureDate} 
-                                                                ] },
-                                                            1000 * 3600 * 24 ]
-                                                            } ]
+                                                        
+                                                        
+                                                    ]
                                                     },
-                                                    {"$gt": [ {"$add":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                            ]
+                                                    
+                                                }
+                                                }
+                                            }
+                                    ],
+        
+                            "as": "obSets_doc.obs_doc.patientData"
+                        }},
+                        
+        {"$addFields": {
+            "obSets_doc.obs_doc.patientData":
+                { "$arrayElemAt": [ "$obSets_doc.obs_doc.patientData", -1 ] }
+            }
+        },
+        {"$addFields": {
+            "obSets_doc.obs_doc.patientData":{ $ifNull: [ "$obSets_doc.obs_doc.patientData",null] }
+       }},
+        { "$lookup": {
+        "let": { "mappingLab":"$obSets_doc.obs_doc.mappingLab", 
+                    "patientID":"$obSets_doc.obs_doc.patientID",
+                    "patientData":"$obSets_doc.obs_doc.patientData"  },
+        "from": "labs",
+        "pipeline":[
+                    {"$match": 
+                        {"$expr": 
+                            {
+                                "$and": [
+                                {"$eq": [ "$labItemID", {"$toString":"$$mappingLab._id"} ]
+                                },
+                                    {"$eq": [ "$patientID", "$$patientID" ]
+                                },
+                                {"$eq": [  "$$patientData",null ]
+                                },
+                                    {"$or":[
+                                        {"$and":[//{"$ne": [ req.body.procedureDate,null]},  
+                                                {"$gt": [ "$$mappingLab.frameDays",0]},
+                                                {"$eq": [ "$$mappingLab.visitFrameDays",0]},
+                                                {"$lte": [ {"$subtract":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                                        {"$divide":  [{"$subtract":
+                                                            [{"$toDate":"$resultAt"}, 
+                                                            {"$toDate":req.body.procedureDate} 
+                                                            ] },
+                                                        1000 * 3600 * 24 ]
+                                                        } ]
+                                                },
+                                                {"$gt": [ {"$add":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                                {"$divide":  [{"$subtract":
+                                                    [{"$toDate":"$resultAt"}, 
+                                                    {"$toDate":req.body.procedureDate} 
+                                                    ] },
+                                                1000 * 3600 * 24 ]
+                                                } ]
+                                            }]
+                                        },
+                                        {"$and":[//{"$ne": [ req.body.visitDate,null]},  
+                                                {"$eq": [ "$$mappingLab.frameDays",0]},
+                                                {"$gt": [ "$$mappingLab.visitFrameDays",0]},
+                                                {"$lte": [ {"$subtract":["$$mappingLab.visitFrameDays","$$mappingLab.searchDays"]},
+                                                        {"$divide":  [{"$subtract":
+                                                            [ 
+                                                            {"$toDate":req.body.visitDate},
+                                                            {"$toDate":"$resultAt"} 
+                                                            ] },
+                                                        1000 * 3600 * 24 ]
+                                                        } ]
+                                                },
+                                                {"$gt": [ {"$add":["$$mappingLab.visitFrameDays","$$mappingLab.searchDays"]},
+                                                {"$divide":  [{"$subtract":
+                                                    [
+                                                    {"$toDate":req.body.visitDate},
+                                                    {"$toDate":"$resultAt"} 
+                                                    ] },
+                                                1000 * 3600 * 24 ]
+                                                } ]
+                                            }]
+                                        },
+                                    //before procedure
+                                    {"$and":[//{"$ne": [ req.body.procedureDate,null]},  
+                                            {"$gt": [ "$$mappingLab.frameDays",0]},
+                                            {"$eq": [ "$$mappingLab.visitFrameDays",0]},
+                                            {"$lte": [ {"$subtract":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
                                                     {"$divide":  [{"$subtract":
-                                                        [{"$toDate":"$resultAt"}, 
-                                                        {"$toDate":req.body.procedureDate} 
+                                                        [ 
+                                                        {"$toDate":req.body.procedureDate},
+                                                        {"$toDate":"$resultAt"} 
                                                         ] },
                                                     1000 * 3600 * 24 ]
                                                     } ]
-                                                }]
                                             },
-                                        {"$and":[
-                                              {"$ne": [ req.body.procedureDate,null]},
-                                              {"$lte": [ "$$mappingLab.frameDays",0]},
-                                               {"$lte": [
-                                                    {"$divide":
-                                                       [{"$subtract":
-                                                          [{"$toDate":"$resultAt"}, 
-                                                            {"$toDate":req.body.procedureDate} 
-                                                           ]
-                                                        },
-                                                        1000 * 3600 * 24 
-                                                      ]
-                                                     },0
-                                                     ]
-                                                  }
-                                                ]
-                                          },
-                                          {"$and":[{"$eq": [ "$$mappingLab.frameDays",0]},
-                                                    {"$gte": [ "$$mappingLab.searchDays",
-                                                             {"$divide":
-                                                                      [{"$subtract":
-                                                                              [{"$toDate":req.body.visitDate}, 
-                                                                              {"$toDate":"$resultAt"} 
-                                                                              ] },
-                                                                      1000 * 3600 * 24 
-                                                                      ]
-
-                                                                   }
-                                                             
-                                                                  ]
-                                                            }]
-                                            },
-                                        ]
+                                            {"$gt": [ {"$add":["$$mappingLab.frameDays","$$mappingLab.searchDays"]},
+                                            {"$divide":  [{"$subtract":
+                                                [
+                                                {"$toDate":req.body.procedureDate},
+                                                {"$toDate":"$resultAt"} 
+                                                ] },
+                                            1000 * 3600 * 24 ]
+                                            } ]
+                                            }]
+                                                
                                     },
-                                ]
-                                    
-                                }
+                                        //most recent lab from visit date
+                                        {"$and":[{"$eq": [ "$$mappingLab.frameDays",0]},
+                                                {"$eq": [ "$$mappingLab.visitFrameDays",0]},
+                                                {"$lte": [ 
+                                                        {"$divide":
+                                                                    [{"$subtract":
+                                                                            [{"$toDate":req.body.visitDate}, 
+                                                                            {"$toDate":"$resultAt"} 
+                                                                            ] },
+                                                                    1000 * 3600 * 24 
+                                                                    ]
+
+                                                                },
+                                                          "$$mappingLab.searchDays"
+                                                        
+                                                                ]
+                                                        }]
+                                        },
+                                    ]
+                                },
+                            ]
+                                
                             }
                         }
-                                ],
-          
-                                "as": "obSets_doc.obs_doc.labData"
-                            }},  
-    
-                            {"$addFields": {
-                                "obSets_doc.obs_doc.labData":   
-                                { "$cond": {
-                                    if:{ "$eq": ["$obSets_doc.obs_doc.mappingLab.seiry", 0]},
-                                    then:  { "$arrayElemAt": [ "$obSets_doc.obs_doc.labData", -1 ] },
-                                    else: { "$arrayElemAt": [ "$obSets_doc.obs_doc.labData", -2 ] },
-                                            }
-                                        }
-                                        //last element
-                                 }
-                },
-                                
-                /*    { "$unwind": {
-                                    "path":'$obSets_doc.obs_doc.LabData',
-                                    "preserveNullAndEmptyArrays": true
-                    } },*/
-                          
-        //asign lab data to ob value
+                    }
+                            ],
         
-            
+                            "as": "obSets_doc.obs_doc.labData"
+                        }},  
+
+                        {"$addFields": {
+                            "obSets_doc.obs_doc.labData":   
+                            { "$cond": {
+                                if:{ "$eq": ["$obSets_doc.obs_doc.mappingLab.seiry", 0]},
+                                then:  { "$arrayElemAt": [ "$obSets_doc.obs_doc.labData", -1 ] },
+                                else: { "$arrayElemAt": [ "$obSets_doc.obs_doc.labData", -2 ] },
+                                        }
+                                    }
+                                    //last element
+                            }
+            },
+                            
+            /*    { "$unwind": {
+                                "path":'$obSets_doc.obs_doc.LabData',
+                                "preserveNullAndEmptyArrays": true
+                } },*/
                         
+    //asign lab data to ob value
+    
         
-                    {"$addFields": {
-                                "obSets_doc.obs_doc.values":{ $ifNull: [ "$obSets_doc.obs_doc.patientData.values", []] }
-                            }
-                    },
-              
+                    
+    
+                {"$addFields": {
+                            "obSets_doc.obs_doc.values":{ $ifNull: [ "$obSets_doc.obs_doc.patientData.values", []] }
+                        }
+                },
             
-                    {"$addFields": {
-                        "obSets_doc.obs_doc.patientData":
-                                       { "$cond": {
-                                           if :{'$eq': ["$obSets_doc.obs_doc.type", 'mapping lab']},
-                                           then:"$obSets_doc.obs_doc.labData",
-                                           else:"$obSets_doc.obs_doc.patientData"
-                                           
-                                           }
-                                   }
-                               }
-                    },
-                    {"$addFields": {
-                        "obSets_doc.obs_doc.value":{ $ifNull: [ "$obSets_doc.obs_doc.patientData.value", ''] }
-                    }
-            },
         
-                    {"$addFields": {
-                        "obSets_doc.obs_doc.label":{ $ifNull: [ "$obSets_doc.obs_doc.label", {ch:'$obSets_doc.obs_doc.name',en:''}] }
-                    }
-            },
-                 
-                    {"$addFields": {
-                        "obSets_doc.obs_doc.values":
-                        { "$cond": {
-                            if :{"$and":[{"$ne": ["$obSets_doc.obs_doc.value", '']},
-                                         {"$in":["$obSets_doc.obs_doc.type",["number", "mapping ob","mapping", "mapping lab"]]}
-                                        ]
-                                    },
-                            then:{
-                             "$map":
-                                {
-                                  input: "$obSets_doc.obs_doc.options",
-                                  as: "option",
-                                  in: { "$cond": 
-                                            { if:{ "$and":
-                                            [{ $gte:[{"$toDecimal":"$obSets_doc.obs_doc.value"}, "$$option.from" ] },
-                                            { $lt: [{"$toDecimal":"$obSets_doc.obs_doc.value"}, "$$option.to" ] }
-                                            ]
-                                            }, 
-                                            then: "$$option",
-                                            else:null
-                                            }
+                {"$addFields": {
+                    "obSets_doc.obs_doc.patientData":
+                                    { "$cond": {
+                                        if :{'$ne': ["$obSets_doc.obs_doc.patientData", null]},
+                                        then:"$obSets_doc.obs_doc.patientData",
+                                        else:"$obSets_doc.obs_doc.labData"
+                                        
                                         }
                                 }
-                           },
-                           else:  { "$cond": {
-                                        if :{"$and":[
-                                                    {"$in":["$obSets_doc.obs_doc.type",["list"]]}
-                                                    ]
-                                                },
-                                        then:{
-                                        "$map":
-                                            {
-                                            input: "$obSets_doc.obs_doc.options",
-                                            as: "option",
-                                            in: { "$cond": 
-                                                { if:{ "$and":
-                                                        [{ "$in":["$$option.text", "$obSets_doc.obs_doc.values" ] }
-                                                        
-                                                        ]
-                                                        }, 
-                                                        then: "$$option",
-                                                        else:null
-                                                        }
-                                                    }
-                                            }
-                                    },
-                                    else:[]
-                            
-                                }
-                    }
-                            
                             }
-                    }
+                },
+                {"$addFields": {
+                    "obSets_doc.obs_doc.value":{ $ifNull: [ "$obSets_doc.obs_doc.patientData.value", ''] }
                 }
-            },
-            {"$addFields": {
-                "obSets_doc.obs_doc.values":
-                {$filter: {
-                input: "$obSets_doc.obs_doc.values",
-                as: "item",
-                cond: { $ne: [ "$$item", null ] }
-             }
+        },
+    
+        //          {"$addFields": {
+        //              "obSets_doc.obs_doc.label":{ $ifNull: [ "$obSets_doc.obs_doc.label", {ch:'$obSets_doc.obs_doc.name',en:''}] }
+        //          }
+        //  },
+            
+                {"$addFields": {
+                    "obSets_doc.obs_doc.values":
+                    { "$cond": {
+                        if :{"$and":[{"$ne": ["$obSets_doc.obs_doc.value", '']},
+                                    {"$in":["$obSets_doc.obs_doc.type",["number", "mapping ob","mapping", "mapping lab","formula"]]}
+                                    ]
+                                },
+                        then:{
+                        "$map":
+                            {
+                                input: "$obSets_doc.obs_doc.options",
+                                as: "option",
+                                in: { "$cond": 
+                                        { if:{ "$and":
+                                        [{ $gte:[{"$toDecimal":"$obSets_doc.obs_doc.value"}, "$$option.from" ] },
+                                        { $lt: [{"$toDecimal":"$obSets_doc.obs_doc.value"}, "$$option.to" ] }
+                                        ]
+                                        }, 
+                                        then: "$$option",
+                                        else:null
+                                        }
+                                    }
+                            }
+                        },
+                        else:  { "$cond": {
+                                    if :{"$and":[
+                                                {"$in":["$obSets_doc.obs_doc.type",["list", "mapping ob"]]}
+                                                ]
+                                            },
+                                    then:{
+                                    "$map":
+                                        {
+                                        input: "$obSets_doc.obs_doc.options",
+                                        as: "option",
+                                        in: { "$cond": 
+                                            { if:{ "$and":
+                                                    [{ "$in":["$$option.text", "$obSets_doc.obs_doc.values" ] }
+                                                    
+                                                    ]
+                                                    }, 
+                                                    then: "$$option",
+                                                    else:null
+                                                    }
+                                                }
+                                        }
+                                },
+                                else:[]
+                        
+                            }
+                }
+                        
+                        }
                 }
             }
         },
-        { "$unwind": {
-            "path":'$obSets_doc.obs_doc.values',
-            "preserveNullAndEmptyArrays": true
-        } },
+        {"$addFields": {
+            "obSets_doc.obs_doc.values":
+            {$filter: {
+            input: "$obSets_doc.obs_doc.values",
+            as: "item",
+            cond: { $ne: [ "$$item", null ] }
+        }
+            }
+        }
+    },
+    { "$unwind": {
+        "path":'$obSets_doc.obs_doc.values',
+        "preserveNullAndEmptyArrays": true
+    } },
+    
+    //{"$addFields": {
+    //    "obSets_doc.obs_doc.values.number":{ $ifNull: [ "$obSets_doc.obs_doc.values.number", 0] }
+    //}
+    //},
+        {"$group": {_id:{_id: "$_id",
+                            name:"$name",
+                            label:"$label",
+                            formType:"$formType",
+                            image:'$image',
+                            counter:'$counter',
+                            formStyle:"$formStyle",
+                            obSetAddsIn: '$obSets_doc.addsIn',
+                            obSetField: '$obSets_doc.field',
+                            obSetName:'$obSets_doc.name',
+                            obSetImage:'$obSets_doc.image',
+                            obSetLabel:'$obSets_doc.label',
+                            obSetIndex:'$obSets_doc.index',
+                            obSetDesc:'$obSets_doc.desc',
+                            obSetID:'$obSets_doc._id',
+                            obID:'$obSets_doc.obs_doc._id',
+                            obDesc:'$obSets_doc.obs_doc.desc',
+                            obName:'$obSets_doc.obs_doc.name',
+                            obFormula:'$obSets_doc.obs_doc.formula',
+                            obLabel:'$obSets_doc.obs_doc.label',
+                            obOptions:'$obSets_doc.obs_doc.options',
+                            obAddsIn: '$obSets_doc.obs_doc.addsIn',
+                            obRequired: '$obSets_doc.obs_doc.required',
+                            obMappingOb: '$obSets_doc.obs_doc.mappingOb',
+                            obType:'$obSets_doc.obs_doc.type',
+                            obValue:'$obSets_doc.obs_doc.value',
+                            obImage:'$obSets_doc.obs_doc.image',
+                            obIndex: '$obSets_doc.obs_doc.index',
+                            obContext: '$obSets_doc.obs_doc.context',
+                            obCalculationItems:'$obSets_doc.obs_doc.calculationItems',
+                            obSingleSelection:'$obSets_doc.obs_doc.singleSelection',
+                            obEducation:'$obSets_doc.obs_doc.education'
+                            
+                        },
+                    obValues: {$push: '$obSets_doc.obs_doc.values'},
+                    obNumber: {$sum: '$obSets_doc.obs_doc.values.number'}},
+                        
+                        
+        },
+    
+    
+    
+        {"$project":{
+            _id:'$_id._id',
+            name:'$_id.name',
+            label:'$_id.label',
+            image:'$_id.image',
+            counter:'$_id.counter',
+            formType:'$_id.formType',
+            formStyle:'$_id.formStyle',
+            obSetName:'$_id.obSetName',
+            obSetImage:'$_id.obSetImage',
+            obSetLabel:'$_id.obSetLabel',
+            obSetField:'$_id.obSetField',
+            obSetIndex:'$_id.obSetIndex',
+            obSetDesc:'$_id.obSetDesc',
+            obSetAddsIn:'$_id.obSetAddsIn',
+            obSetID: '$_id.obSetID',
+            obs:{ _id:'$_id.obID',
+                name: '$_id.obName',
+                label: '$_id.obLabel',
+                options:'$_id.obOptions',
+                addsIn:'$_id.obAddsIn',
+                desc:'$_id.obDesc',
+                required:'$_id.obRequired',
+                mappingOb:'$_id.obMappingOb',
+                formula:'$_id.obFormula',
+                type:'$_id.obType', 
+                value:'$_id.obValue',
+                index:'$_id.obIndex',
+                context:'$_id.obContext',
+                calculationItems:'$_id.obCalculationItems',
+                singleSelection:'$_id.obSingleSelection',
+                education:'$_id.obEducation',
+                image:'$_id.obImage',
+                values:'$obValues',
+                number:'$obNumber'
+        }
+        }
+    },
         
-        //{"$addFields": {
-        //    "obSets_doc.obs_doc.values.number":{ $ifNull: [ "$obSets_doc.obs_doc.values.number", 0] }
-        //}
-        //},
-            {"$group": {_id:{_id: "$_id",
-                                name:"$name",
-                                label:"$label",
-                                formType:"$formType",
-                                formStyle:"$formStyle",
-                                obSetAddsIn: '$obSets_doc.addsIn',
-                                obSetField: '$obSets_doc.field',
-                                obSetName:'$obSets_doc.name',
-                                obSetLabel:'$obSets_doc.label',
-                                obSetIndex:'$obSets_doc.index',
-                                obSetID:'$obSets_doc._id',
-                                obID:'$obSets_doc.obs_doc._id',
-                                obName:'$obSets_doc.obs_doc.name',
-                                obFormula:'$obSets_doc.obs_doc.formula',
-                                obLabel:'$obSets_doc.obs_doc.label',
-                                obOptions:'$obSets_doc.obs_doc.options',
-                                obAddsIn: '$obSets_doc.obs_doc.addsIn',
-                                obRequired: '$obSets_doc.obs_doc.required',
-                                obMappingOb: '$obSets_doc.obs_doc.mappingOb',
-                                obType:'$obSets_doc.obs_doc.type',
-                                obValue:'$obSets_doc.obs_doc.value',
-                                obIndex: '$obSets_doc.obs_doc.index',
-                                obContext: '$obSets_doc.obs_doc.context',
-                                obCalculationItems:'$obSets_doc.obs_doc.calculationItems',
-                                obSingleSelection:'$obSets_doc.obs_doc.singleSelection'
-                                
-                            },
-                        obValues: {$push: '$obSets_doc.obs_doc.values'},
-                        obNumber: {$sum: '$obSets_doc.obs_doc.values.number'}},
-                            
-                            
+    { "$sort": { "obs.index": 1 }},          
+        {"$group": {_id:{_id: "$_id",
+                        name:"$name",
+                        label:"$label",
+                        image:"$image",
+                        counter:'$counter',
+                        formType:"$formType", 
+                        formStyle:"$formStyle", 
+                        obSetAddsIn:'$obSetAddsIn',
+                        obSetField:'$obSetField',
+                        obSetIndex:'$obSetIndex',
+                        obSetName:'$obSetName',
+                        obSetImage:'$obSetImage',
+                        obSetLabel:'$obSetLabel',
+                        obSetDesc:'$obSetDesc',
+                        obSetID:'$obSetID'},
+                obs: {$push: '$obs'},
+                obsSum: {$sum: '$obs.number'},
+                        
+                    }
             },
-        
-         
-        
+    
+            
+    //for calculation ob
             {"$project":{
                 _id:'$_id._id',
                 name:'$_id.name',
                 label:'$_id.label',
+                image:'$_id.image',
+                counter:'$_id.counter',
                 formType:'$_id.formType',
                 formStyle:'$_id.formStyle',
                 obSetName:'$_id.obSetName',
+                obSetImage:'$_id.obSetImage',
                 obSetLabel:'$_id.obSetLabel',
+                obSetAddsIn:'$_id.obSetAddsIn',
                 obSetField:'$_id.obSetField',
                 obSetIndex:'$_id.obSetIndex',
-                obSetAddsIn:'$_id.obSetAddsIn',
+                obSetDesc:'$_id.obSetDesc',
                 obSetID: '$_id.obSetID',
-                obs:{ _id:'$_id.obID',
-                     name: '$_id.obName',
-                     label: '$_id.obLabel',
-                     options:'$_id.obOptions',
-                     addsIn:'$_id.obAddsIn',
-                     required:'$_id.obRequired',
-                    mappingOb:'$_id.obMappingOb',
-                    formula:'$_id.obFormula',
-                     type:'$_id.obType', 
-                     value:'$_id.obValue',
-                     index:'$_id.obIndex',
-                     context:'$_id.obContext',
-                     calculationItems:'$_id.obCalculationItems',
-                     singleSelection:'$_id.obSingleSelection',
-                     values:'$obValues',
-                     number:'$obNumber'
-            }
-            }
-        },
-           
-        { "$sort": { "obs.index": 1 }},          
-            {"$group": {_id:{_id: "$_id",
-                            name:"$name",
-                            label:"$label",
-                            formType:"$formType", 
-                            formStyle:"$formStyle", 
-                            obSetAddsIn:'$obSetAddsIn',
-                            obSetField:'$obSetField',
-                            obSetIndex:'$obSetIndex',
-                            obSetName:'$obSetName',
-                            obSetLabel:'$obSetLabel',
-                            obSetID:'$obSetID'},
-                    obs: {$push: '$obs'},
-                    obsSum: {$sum: '$obs.number'},
-                          
-                        }
-                },
-        
-              
-        
-                {"$project":{
-                    _id:'$_id._id',
-                    name:'$_id.name',
-                    label:'$_id.label',
-                    formType:'$_id.formType',
-                    formStyle:'$_id.formStyle',
-                    obSetName:'$_id.obSetName',
-                    obSetLabel:'$_id.obSetLabel',
-                    obSetAddsIn:'$_id.obSetAddsIn',
-                    obSetField:'$_id.obSetField',
-                    obSetIndex:'$_id.obSetIndex',
-                    obSetID: '$_id.obSetID',
-                    obs:{
-                        $map:
-                            {
-                              input: "$obs",
-                               as: "ob",
-                               in: 
-                                { "$cond": {
-                                    if:{ "$eq": ["$$ob.type", 'calculation']},
-                                    then: {"value":"$obsSum", 
-                                            "_id":"$$ob._id",
-                                            "name":"$$ob.name",
-                                            "label":"$$ob.label",
-                                            "type":"$$ob.type",
-                                            "addsIn": "$$ob.addIn",
-                                            "required": "$$ob.required",
-                                            "options": "$$ob.options",
-                                            "index":"$$ob.index",
-                                            "context":"$$ob.context",
-                                            "calculationItems":'$$ob.calculationItems',
-                                            "singleSelection":'$$ob.singleSelection',
-                                            "values":{
-                                                "$map":
-                                                        {
-                                                        input: "$$ob.options",
-                                                        as: "option",
-                                                        in: { "$cond": 
-                                                                    { if:{ "$and":
-                                                                    [{ $gte:[{"$toDecimal":"$obsSum"}, "$$option.from" ] },
-                                                                    { $lt: [{"$toDecimal":"$obsSum"}, "$$option.to" ] }
-                                                                    ]
-                                                                    }, 
-                                                                    then: "$$option",
-                                                                    else:null
-                                                                    }
+                obs:{
+                    $map:
+                        {
+                            input: "$obs",
+                            as: "ob",
+                            in: 
+                            { "$cond": {
+                                if:{ "$eq": ["$$ob.type", 'calculation']},
+                                then: {"value":"$obsSum", 
+                                        "_id":"$$ob._id",
+                                        "name":"$$ob.name",
+                                        "label":"$$ob.label",
+                                        "type":"$$ob.type",
+                                        "addsIn": "$$ob.addsIn",
+                                        "desc":"$$ob.desc",
+                                        "required": "$$ob.required",
+                                        "options": "$$ob.options",
+                                        "index":"$$ob.index",
+                                        "context":"$$ob.context",
+                                        "calculationItems":'$$ob.calculationItems',
+                                        "singleSelection":'$$ob.singleSelection',
+                                        "values":{
+                                            "$map":
+                                                    {
+                                                    input: "$$ob.options",
+                                                    as: "option",
+                                                    in: { "$cond": 
+                                                                { if:{ "$and":
+                                                                [{ $gte:[{"$toDecimal":"$obsSum"}, "$$option.from" ] },
+                                                                { $lt: [{"$toDecimal":"$obsSum"}, "$$option.to" ] }
+                                                                ]
+                                                                }, 
+                                                                then: "$$option",
+                                                                else:null
                                                                 }
-                                                        }
-                                                }
-                                            },
-                                    else: "$$ob"
+                                                            }
+                                                    }
                                             }
+                                        },
+                                else: "$$ob"
                                         }
                                     }
                                 }
-            }},
-        
-        
-        
-              
-                {'$addFields':{'obSets':{'name':'$obSetName','label':'$obSetLabel','field':'$obSetField','index':'$obSetIndex',   '_id':'$obSetID', 'addsIn':'$obSetAddsIn', 'obs':'$obs'}}},
-        
-                { "$sort": { "obSets.index": 1 }},  
-                
-                {"$group": {_id:{_id: "$_id",name:"$name",label:"$label",formType:"$formType",formStyle:"$formStyle"},
-                            
-                                obSets: {$push: '$obSets'}}},
-        
-                    {"$project":{
-                        _id:'$_id._id',
-                        name:'$_id.name',
-                        label:'$_id.label',
-                        formType:'$_id.formType',
-                        formStyle:'$_id.formStyle',
-                        obSets:1
-                            
-                    }},
-                    { $sort : { name: 1 } }
+                            }
+        }},
     
     
-    
-    ];
-                    
+        {
+            $addFields: {
+                disqualified: {
+                    $filter: {
+                        input: "$ob.values",
+                        as: "d",
+                        cond: {
+                            $ne: [ "$$d.text", null ]
+                        }
+                    }
                 }
+            }
+        },
+            
+            
+            {'$addFields':{'obSets':
+            {'name':'$obSetName',
+            'image':'$obSetImage',
+            'label':'$obSetLabel',
+            'field':'$obSetField',
+            'index':'$obSetIndex',  
+            'desc':'$obSetDesc',
+             '_id':'$obSetID', 
+             'addsIn':'$obSetAddsIn', 
+             'obs':'$obs'}}},
+    
+            { "$sort": { "obSets.index": 1 }},  
+            
+            {"$group": {_id:{_id: "$_id", counter:'$counter',name:"$name",label:"$label",formType:"$formType",formStyle:"$formStyle"},
+                        
+                            obSets: {$push: '$obSets'}}},
+    
+                {"$project":{
+                    _id:'$_id._id',
+                    name:'$_id.name',
+                    image:'$_id.image',
+                    counter:'$_id.counter',
+                    label:'$_id.label',
+                    formType:'$_id.formType',
+                    formStyle:'$_id.formStyle',
+                    obSets:1
+                        
+                }},
+                { $sort : { name: 1 } }
+                    
+
+
+
+];
+                
+            }
             Category.aggregate(
                      pipeline,
                     function(err, result)   {
@@ -2625,7 +3359,8 @@ exports.getUserForm = function(req, res, next) {
                                                 'obs_doc':{//'name':'$obSets_doc.obs.name',
                                                             //'_id':'$obSets_doc.obs._id',
                                                             'addsIn':'$obSets_doc.obs.addsIn', 
-                                                            'options':'$obSets_doc.obs_doc.options'}}}},
+                                                            'index':'$obSets_doc.obs.index', 
+                                                            'required':'$obSets_doc.obs.required'}}}},
     
         {"$addFields": {
             "obSets_doc.obs_doc.label":{ $ifNull: [ "$obSets_doc.obs_doc.label", {ch:'$obSets_doc.obs_doc.name',en:''}] }
@@ -2775,6 +3510,7 @@ exports.getUserForm = function(req, res, next) {
                                                
                                                      'addsIn':'$obSets_doc.obs.addsIn',
                                                      'index':'$obSets_doc.obs.index',
+                                                     'required':'$obSets_doc.obs.required',
                                                    
                                                      //'options':'$obSets_doc.obs_doc.options'
                                                  }}}},
@@ -3053,8 +3789,8 @@ obs:{ _id:'$_id.obID',
  Category.aggregate(
     pipeline,
    function(err, result)   {
-   console.log ('_id',req.body.formIDs)
-   console.log ('result',result)
+  // console.log ('_id',req.body.formIDs)
+ //  console.log ('result',result)
    if(err) {
        console.log(err);
    }
@@ -3075,7 +3811,7 @@ exports.getProblemForm = function(req, res, next) {
     var obIDs=[];
    
     var problemID=mongoose.Types.ObjectId(req.body.problemID);
-    console.log ('problem._id-1', problemID)
+    //console.log ('problem._id-1', problemID)
 
   
    
@@ -3116,7 +3852,7 @@ exports.getProblemForm = function(req, res, next) {
                      pipeline,
                     function(err, result)   {
                     console.log ('_id',req.body.formIDs)
-                    console.log ('result',result)
+                 //   console.log ('result',result)
                     if(err) {
                         console.log(err);
                     }
@@ -3193,7 +3929,7 @@ exports.getByFilter = function(req, res, next) {
         };
         next();
 
-    });
+    }).sort( { createdAt: -1 } );
 
 }
 exports.getOrderMasters = function(req, res, next) {
@@ -3220,7 +3956,7 @@ exports.getOrderMasters = function(req, res, next) {
 }
 
 exports.getByFields = function(req, res, next) {
-    console.log('fileds', req.body)
+   // console.log('fileds', req.body)
 
     Category.find({ 'field': { $in: req.body } }, function(err, data) {
         if (err) {
@@ -3343,6 +4079,24 @@ exports.create = function(req, res, next) {
         });
 
 }
+
+exports.CreateMany = function(req, res, next) {
+
+    Category.insertMany((req.body),
+        function(err, Diagnosis) {
+
+            if (err) {
+                res.send(err);
+            }
+
+            res.json(Diagnosis);
+
+
+
+        });
+
+}
+
 
 exports.delete = function(req, res, next) {
 

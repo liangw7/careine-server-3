@@ -57,6 +57,9 @@ var categorySchema = new mongoose.Schema({
     problemType: {
         type: String
     },
+    followupType: {
+        type: String
+    },
     orderType: {
         type: String
     },
@@ -142,7 +145,16 @@ var categorySchema = new mongoose.Schema({
     profileUrl:{
         type: Object
     },
-    devices:[]
+    desc:{
+        type: Object
+    },
+    devices:[],
+    counter:{
+        type: Number
+    },
+    createdBy:{
+        type:Object
+    }
 
     
 

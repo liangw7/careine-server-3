@@ -63,8 +63,6 @@ exports.getDatasByOb = function(req, res, next) {
 
 exports.getPatientsByFilter = function(req, res, next) {
 
-    var patientList ;
-
     console.log ('req.body.patientListID',req.body.patientListID)
     
    Category.findById({ _id: mongoose.Types.ObjectId(req.body.patientListID) })
@@ -73,229 +71,266 @@ exports.getPatientsByFilter = function(req, res, next) {
     if (err) throw err;
      
     
-       
+     console.log ('patientList',patientList.label.ch)  
     var optionSum=[];
     var obList=[];
+    var obIDs=[];
     var obCount=patientList.obs.length;
     for (let ob of patientList.obs){
+        obIDs.push(ob._id)
         for (let option of ob.options){
-            ob.option = ob._id+"-"+ option;
+            ob.option = ob._id+"-"+ option.text;
             optionSum.push(ob.option);
         }
     }
 
     if (patientList.selectedObs&&patientList.selectedObs.length>0){
-    for (let selectedOb of patientList.selectedObs){
-       
-            obList.push(selectedOb._id);
-      
-        }
+            for (let selectedOb of patientList.selectedObs){
+            
+                    obList.push(selectedOb._id);
+            
+                }
         
-    if (req.body.serviceID){
-        var pipeline= [
+            if (req.body.serviceID){
+                var pipeline= [
+                    
+                    { "$match": { "obID": {$in:obIDs} }},
+                    {"$unwind": "$values"},
+                  //  { "$match": { "values": {$exists:false } }},
+                { "$project": { 
+                                    optionSum: { $concat: [ "$obID", "-", "$values" ] },
+                                    patientID:1,
+                                    obID:1,
+                                    values:1
+            
+                    } 
+                    },
+                    { "$match": { "optionSum": {$in:optionSum } }},
+            
+                    { "$lookup": {
+                        "let": { "patientID": "$patientID" },
+                        "from": "users",
+                        "pipeline": [
+                        { "$match": { "$expr":{ '$and':[
+                                                        { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
+                                                    //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
+                                                    ]}
+                        } }
+                        ],
+                        "as": "patientData"
+                    }},
+                    {"$unwind": "$patientData"},
+                    { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
+                    { "$match": { "patientData.serviceList": {'$elemMatch' :{'_id':req.body.serviceID } }}},
+                    
+                    {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
+                                values:{$last:"$values"},
+                                optionSums: {$push: '$optionSum'},
+                                count:{$sum:1}
+                            }
+                    },
+                    { "$match": { "count": {"$gte":obCount } }},
+                
+                    {"$project":{
+                        patientID:'$_id.patientID',
+                        values:1,
+                        _id:0
+                    }},
+            
+                    { "$lookup": {
+                        "let": { "patientID": "$patientID" },
+                        "from": "datas",
+                        "pipeline": [
+                        { "$match": { "$expr": { "$eq": [ "$patientID", "$$patientID" ] } } }
+                        ],
+                        "as": "patientData"
+                    }},
+            
+                    {"$unwind": "$patientData"},
+                
+                    { "$match": { "patientData.obID": {$in:obList} }},
+            
+                    {"$project":{
+                        patientID:"$patientID",
+                        email: '$patientData.patientEmail',
+                        obID:'$patientData.obID',
+                        selectedObs:{name:'$patientData.obName', value:'$patientData.value', values:'$patientData.values'}
+                
+                    }},
+                    {"$group": {_id:{patientID: "$patientID",email:"$email", obID:"$obID"},
+                            selectedObs: {$last: '$selectedObs'}
+                            }
+                    },
+                    
+                    {"$project":{
+                        patientID:"$_id.patientID",
+                        email: '$_id.email',
+                        obID:'$_id.obID',
+                        selectedObs:1
+                
+                    }},
+                    { "$sort" : { obID: 1 } },
+                {"$group": {_id:{patientID: "$patientID",email:"$email"},
+                            selectedObs: {$push: '$selectedObs'}
+                            }
+                    },
+                    {"$project":{
+                        patientID:"$_id.patientID",
+                        email: '$_id.email',
+                    
+                        selectedObs:1,
+                        _id:0
+                
+                    }},
+                    {"$project":{
+                        _id:"$patientID",
+                        email: '$email',
+                        selectedObs:1
+                    }},
+                
+                    
+                    ]       
+            }
+            else {
+                console.log ('optionSum no service id',optionSum)
+                var pipeline= [
+                    { "$match": { "obID": {$in:obIDs} }},
+                    {"$unwind": "$values"},
+                  //  { "$match": { "values": {$exists:false } }},
+                    { "$project": { 
+                                    optionSum: { $concat: [ "$obID", "-", "$values" ] },
+                                    patientID:1,
+                                    obID:1,
+                                    values:1
+            
+                    } 
+                    },
+                    { "$match": { "optionSum": {$in:optionSum } }},
+            
+                    { "$lookup": {
+                        "let": { "patientID": "$patientID" },
+                        "from": "users",
+                        "pipeline": [
+                        { "$match": { "$expr":{ '$and':[
+                                                        { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
+                                                    //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
+                                                    ]}
+                        } }
+                        ],
+                        "as": "patientData"
+                    }},
+                    {"$unwind": "$patientData"},
+                    { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
+                
+                    
+                    {"$group": {_id:{obID: "$obID",
+                                    patientID:"$patientID",
+                                    name:'$patientData.name',
+                                    gender:'$patientData.gender',
+                                    age:'$patientData.age'},
+                                values:{$last:"$values"},
+                                optionSums: {$push: '$optionSum'},
+                                count:{$sum:1}
+                            }
+                    },
+                    { "$match": { "count": {"$gte":obCount } }},
+                
+                    {"$project":{
+                        patientID:'$_id.patientID',
+                        name:'$_id.name',
+                        gender:'$_id.gender',
+                        age:'$_id.age',
+                        values:1,
+                        _id:0
+                    }},
+            
+                    { "$lookup": {
+                        "let": { "patientID": "$patientID" },
+                        "from": "datas",
+                        "pipeline": [
+                        { "$match": { "$expr":
+                                        { "$and":[
+                                            {"$eq":[ "$patientID", "$$patientID" ] },
+                                            {"$in":["$obID",obList]}
 
-            {"$unwind": "$values"},
-            { "$match": { "values.text": {$exists:false } }},
-           { "$project": { 
-                            optionSum: { $concat: [ "$obID", "-", "$values" ] },
-                            patientID:1,
-                             obID:1,
-                             values:1
-    
-            } 
-            },
-            { "$match": { "optionSum": {$in:optionSum } }},
-    
-            { "$lookup": {
-                "let": { "patientID": "$patientID" },
-                "from": "users",
-                "pipeline": [
-                { "$match": { "$expr":{ '$and':[
-                                                { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
-                                              //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
-                                            ]}
-                  } }
-                ],
-                "as": "patientData"
-            }},
-            {"$unwind": "$patientData"},
-            { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
-            { "$match": { "patientData.serviceList": {'$elemMatch' :{'_id':req.body.serviceID } }}},
+                                                ]} } }
+                        ],
+                        "as": "patientData"
+                    }},
             
-            {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
-                        values:{$last:"$values"},
-                        optionSums: {$push: '$optionSum'},
-                        count:{$sum:1}
-                    }
-            },
-            { "$match": { "count": {"$gte":obCount } }},
-           
-            {"$project":{
-                patientID:'$_id.patientID',
-                 values:1,
-                _id:0
-            }},
-    
-            { "$lookup": {
-                "let": { "patientID": "$patientID" },
-                "from": "datas",
-                "pipeline": [
-                { "$match": { "$expr": { "$eq": [ "$patientID", "$$patientID" ] } } }
-                ],
-                "as": "patientData"
-            }},
-    
-            {"$unwind": "$patientData"},
-          
-            { "$match": { "patientData.obID": {$in:obList} }},
-    
-            {"$project":{
-                patientID:"$patientID",
-                email: '$patientData.patientEmail',
-                obID:'$patientData.obID',
-                selectedObs:{name:'$patientData.obName', value:'$patientData.value', values:'$patientData.values'}
-           
-            }},
-            {"$group": {_id:{patientID: "$patientID",email:"$email", obID:"$obID"},
-                       selectedObs: {$last: '$selectedObs'}
-                    }
-            },
+                    {"$unwind": "$patientData"},
+                
+                //    { "$match": { "patientData.obID": {$in:obList} }},
             
-            {"$project":{
-                patientID:"$_id.patientID",
-                email: '$_id.email',
-                obID:'$_id.obID',
-                selectedObs:1
-           
-            }},
-            { "$sort" : { obID: 1 } },
-         {"$group": {_id:{patientID: "$patientID",email:"$email"},
-                       selectedObs: {$push: '$selectedObs'}
-                    }
-            },
-            {"$project":{
-                patientID:"$_id.patientID",
-                email: '$_id.email',
-              
-                selectedObs:1,
-                _id:0
-           
-            }},
-            {"$project":{
-                _id:"$patientID",
-                email: '$email',
-                selectedObs:1
-            }},
-           
+                {"$project":{
+                    patientID:"$patientID",
+                    name:'$name',
+                    gender:'$gender',
+                    age:'$age',
+                 //   email: '$patientData.patientEmail',
+                    obID:'$patientData.obID',
+                    selectedObs:{name:'$patientData.obName', value:'$patientData.value', values:'$patientData.values'}
             
-            ]       
-    }
-    else {
-        var pipeline= [
-
-            {"$unwind": "$values"},
-            { "$match": { "values.text": {$exists:false } }},
-           { "$project": { 
-                            optionSum: { $concat: [ "$obID", "-", "$values" ] },
-                            patientID:1,
-                             obID:1,
-                             values:1
-    
-            } 
-            },
-            { "$match": { "optionSum": {$in:optionSum } }},
-    
-            { "$lookup": {
-                "let": { "patientID": "$patientID" },
-                "from": "users",
-                "pipeline": [
-                { "$match": { "$expr":{ '$and':[
-                                                { "$eq": [ {"$toString":"$_id"}, '$$patientID' ] },
-                                              //  { "$eq": [ {"$toString":"$profile._id"}, req.body.profileID ] }
-                                            ]}
-                  } }
-                ],
-                "as": "patientData"
-            }},
-            {"$unwind": "$patientData"},
-            { "$match": { "patientData.profiles": {'$elemMatch' :{'_id':req.body.profileID } }}},
-           
+                }},
+                {"$group": {_id:{patientID: "$patientID",
+                                name:'$name',
+                                gender:'$gender',
+                                age:'$age',
+                             //   email:"$email", 
+                                obID:"$obID"},
+                        selectedObs: {$last: '$selectedObs'}
+                        }
+                },
+                
+                {"$project":{
+                    patientID:"$_id.patientID",
+                    name:'$_id.name',
+                    gender:'$_id.gender',
+                    age:'$_id.age',
+                   // email: '$_id.email',
+                    obID:'$_id.obID',
+                    selectedObs:1
             
-            {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
-                        values:{$last:"$values"},
-                        optionSums: {$push: '$optionSum'},
-                        count:{$sum:1}
-                    }
-            },
-            { "$match": { "count": {"$gte":obCount } }},
-           
-            {"$project":{
-                patientID:'$_id.patientID',
-                 values:1,
-                _id:0
-            }},
-    
-            { "$lookup": {
-                "let": { "patientID": "$patientID" },
-                "from": "datas",
-                "pipeline": [
-                { "$match": { "$expr": { "$eq": [ "$patientID", "$$patientID" ] } } }
-                ],
-                "as": "patientData"
-            }},
-    
-            {"$unwind": "$patientData"},
-          
-            { "$match": { "patientData.obID": {$in:obList} }},
-    
-            {"$project":{
-                patientID:"$patientID",
-                email: '$patientData.patientEmail',
-                obID:'$patientData.obID',
-                selectedObs:{name:'$patientData.obName', value:'$patientData.value', values:'$patientData.values'}
-           
-            }},
-            {"$group": {_id:{patientID: "$patientID",email:"$email", obID:"$obID"},
-                       selectedObs: {$last: '$selectedObs'}
-                    }
-            },
+                }},
+                { "$sort" : { obID: 1 } },
+                {"$group": {_id:{patientID: "$patientID",
+                              //  email:"$email",
+                                name:'$name',
+                                gender:'$gender',
+                                age:'$age'},
+                        selectedObs: {$push: '$selectedObs'}
+                        }
+                },
+                {"$project":{
+                    patientID:"$_id.patientID",
+                  //  email: '$_id.email',
+                    name:'$_id.name',
+                    gender:'$_id.gender',
+                    age:'$_id.age',
+                    selectedObs:1,
+                    _id:0
             
-            {"$project":{
-                patientID:"$_id.patientID",
-                email: '$_id.email',
-                obID:'$_id.obID',
-                selectedObs:1
-           
-            }},
-            { "$sort" : { obID: 1 } },
-         {"$group": {_id:{patientID: "$patientID",email:"$email"},
-                       selectedObs: {$push: '$selectedObs'}
-                    }
-            },
-            {"$project":{
-                patientID:"$_id.patientID",
-                email: '$_id.email',
-              
-                selectedObs:1,
-                _id:0
-           
-            }},
-            {"$project":{
-                _id:"$patientID",
-                email: '$email',
-                selectedObs:1
-            }},
-           
+                }},
+                {"$project":{
+                    _id:"$patientID",
+                  //  email: '$email',
+                    name:'$name',
+                    gender:'$gender',
+                    age:'$age',
+                    selectedObs:1
+                }},
+                
+                    
+                    ]       
             
-            ]       
-      
-    }
+            }
    }
     else{
         if (req.body.serviceID){
         pipeline= [
+            {"$match":{'obID':{'$in':obIDs}}},
             {"$unwind": "$values"},
-            { "$match": { "values.text": {$exists:false } }},
+         //   { "$match": { "values.text": {$exists:false } }},
            { "$project": { 
                             optionSum: { $concat: [ "$obID", "-", "$values" ] },
                             patientID:1,
@@ -357,8 +392,9 @@ exports.getPatientsByFilter = function(req, res, next) {
         }
         else {
             pipeline= [
+                {"$match":{'obID':{'$in':obIDs}}},
                 {"$unwind": "$values"},
-                { "$match": { "values.text": {$exists:false } }},
+              //  { "$match": { "values.text": {$exists:false } }},
                { "$project": { 
                                 optionSum: { $concat: [ "$obID", "-", "$values" ] },
                                 patientID:1,
@@ -423,13 +459,13 @@ exports.getPatientsByFilter = function(req, res, next) {
     console.log('profileID',req.body.profileID);
     Data.aggregate(
             pipeline,
-            function(err, result)	{
+            function(err, result)   {
                 console.log ('_id',req.body.patientListID )
                 console.log ('result',result)
-                if(err)	{
+                if(err) {
                     console.log(err);
                 }
-                else	{
+                else    {
                     res.json(result);
                 }
             });
@@ -490,21 +526,20 @@ exports.getReport = function(req, res, next) {
      
         Data.aggregate(
                 pipeline,
-                function(err, result)	{
+                function(err, result)   {
                     console.log ('_id',req.body.profileID )
                     console.log ('result',result)
-                    if(err)	{
+                    if(err) {
                         console.log(err);
                     }
-                    else	{
+                    else    {
                         res.json(result);
                     }
                 })
     }
 
 
-
-exports.getMultiReport = function(req, res, next) {
+exports.getMultiReport_test = function(req, res, next) {
 
         var    pipeline= [
                 { "$match": { "obID": req.body.obID }},
@@ -512,6 +547,7 @@ exports.getMultiReport = function(req, res, next) {
                 {"$group": {_id:{obID: "$obID",patientID:"$patientID"},
                             values:{$last:"$values"}}
                 },
+                {"$limit":300},
                 {"$project":{
                     obID:'$_id.obID',
                     patientID:'$_id.patientID',
@@ -522,14 +558,18 @@ exports.getMultiReport = function(req, res, next) {
                     "let": { "patientID": "$patientID" },
                     "from": "datas",
                     "pipeline": [
-                    { "$match": { "$expr": { "$eq": [ "$patientID", "$$patientID" ] } } }
+                    { "$match": { "$expr": {"$and":[ { "$eq": [ {"$toString":"$patientID"}, {"$toString":"$$patientID"} ] },
+                                                      {"$eq":[ {"$toString":"$obID"}, {"$toString":req.body.obYID}]}   ]}
+                                       
+                                } 
+                            }
                     ],
                     "as": "patientData"
                 }},
+           
                 {"$unwind": "$patientData"},
 
-                { "$match": { "patientData.obID": req.body.obYID }},   
-
+            
                 {"$group": {_id:{obID: "$obID",patientID:"$patientID", obYID:"$patientData.obID", values:"$values"},
                             valueYs:{$last:"$patientData.values"}}
                 },
@@ -558,24 +598,80 @@ exports.getMultiReport = function(req, res, next) {
                        values:'$_id.values',
                        valueYs:1,
                        _id:0
-                      }},
-               
-             ]       
+                      }}
+             ]
+        
      
         Data.aggregate(
                 pipeline,
-                function(err, result)	{
+                function(err, result)   {
                     console.log ('_id',req.body.patientListID )
                     console.log ('result',result)
-                    if(err)	{
+                    if(err) {
                         console.log(err);
                     }
-                    else	{
+                    else    {
                         res.json(result);
                     }
-                })
+                }).option({allowDiskUse:true})
     }
- 
+exports.getMultiReport = function(req, res, next) {
+
+    var    pipeline= [
+            { "$match": { "obID": {'$in':[req.body.obID,req.body.obYID] }}},
+           // {"$limit":300},
+
+            {"$unwind":"$values"},
+            {"$group": {_id:{patientID:"$patientID"},
+                        data:{$push:{'obID':"$obID", 'values':'$values'},
+                        }
+                }
+            },
+            {"$project":{
+              
+                patientID:'$_id.patientID',
+                data:1
+            }},
+            {"$group": {_id:{data:"$data"},
+                        count:{$sum:1
+                        }
+                        }
+
+            },
+            {"$project":{
+              
+                data:'$_id.data',
+                count:1,
+                _id:0
+            }},
+         
+
+
+    
+         
+
+            
+            
+
+          
+         
+            ]
+    
+    
+    Data.aggregate(
+            pipeline,
+            function(err, result)   {
+                console.log ('_id',req.body.patientListID )
+                console.log ('result',result)
+                if(err) {
+                    console.log(err);
+                }
+                else    {
+                    res.json(result);
+                }
+            })
+}
+  
 exports.getDatasByFollowup = function(req, res, next) {
 
     Data.find(req.body, function(err, data) {
@@ -695,7 +791,6 @@ exports.Create = function(req, res, next) {
         }
         res.json(Data);
 
-
     });
 
 }
@@ -709,9 +804,7 @@ exports.Delete = function(req, res, next) {
     });
 }
 
-
 exports.Update = function(req, res, next) {
-
 
     Data.findByIdAndUpdate(req.body._id, { $set: req.body }, { new: true },
         function(err, request) {
@@ -722,3 +815,4 @@ exports.Update = function(req, res, next) {
             }
         });
 }
+

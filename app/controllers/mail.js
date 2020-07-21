@@ -98,3 +98,49 @@ exports.Delete = function(req, res, next) {
     });
 
 }
+
+
+exports.getPatientMails= function(req, res, next) {
+
+    //find all patients of a provider
+        var pipeline= [
+            
+                { "$match": { "$eq": [ {"$toString":"$patientID"}, req.body.patientID ]}},
+                { '$limit': req.body.limit },
+                {"$addFields": {
+                    "newMails":{"$map":
+                                    {
+                                    input: "$mails",
+                                    as: "mail",
+                                    in: { "$cond":{if:{ '$eq':["$status", "active" ] }
+                                                    }, 
+                                                    then: "$$mail"
+                                                }
+                                        }
+                            
+                                }
+                                }
+                },
+                {"$addFields": {
+                    "newMailsCount":{"$size":"$newMails"}
+                            
+                    }
+                },
+    
+            
+            ]       
+        
+        Data.aggregate(
+                pipeline,
+                function(err, result)	{
+                    console.log ('_id',req.body.patientListID )
+                    console.log ('result',result)
+                    if(err)	{
+                        console.log(err);
+                    }
+                    else	{
+                        res.json(result);
+                    }
+                });
+                
+        }

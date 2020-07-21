@@ -10,7 +10,10 @@ var UserSchema = new mongoose.Schema({
      //   unique: true
 
     },
-    weChatOpenID: {
+    weChatID: {
+        type:String
+    },
+    openID: {
         type:String
     },
     weChatNickname: {
@@ -41,11 +44,17 @@ var UserSchema = new mongoose.Schema({
     ssn:{
         type: String
     },
+    city:{
+        type: String
+    },
     gender:{
         type: String
     },
     age:{
-        type: String
+        type: Number
+    },
+    ageObj:{
+        type: Object
     },
     birthday:{
         type: String
@@ -77,7 +86,9 @@ var UserSchema = new mongoose.Schema({
     service: { type: Object },
     marketPlace: { type: Object },
     providers:[],
+    introForms:[],
     labs:[],
+    followups:[],
     serviceList:[],
     marketList:[],
     allergyList:[],
@@ -98,6 +109,9 @@ var UserSchema = new mongoose.Schema({
         type:String
     },
     enDesc:{
+        type:String
+    },
+    follow:{
         type:String
     },
     patientLists:[],

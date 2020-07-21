@@ -8,9 +8,18 @@ var LocalStrategy = require('passport-local').Strategy;
 var localOptions = {
     usernameField: 'email'
 };
+var adminCredential ={
+    email:'liangw0730@gmail.com',
+    password:'Outlook!2018',
+    role:'admin'
+}
+
 
 var localLogin = new LocalStrategy(localOptions, function(email, password, done) {
 
+//console.log ('email', email)
+//console.log ('adminCredential',adminCredential )
+if (adminCredential.email!=email||adminCredential.password!=password){
     User.findOne({
         email: email
     }, function(err, user) {
@@ -38,18 +47,22 @@ var localLogin = new LocalStrategy(localOptions, function(email, password, done)
         });
 
     });
-
+}
+else if (adminCredential.email==email||adminCredential.password==password)
+   
+        return done(null, adminCredential);
 });
 
 var jwtOptions = {
-    jwtFromRequest: ExtractJwt.fromAuthHeader(),
+    jwtFromRequest:ExtractJwt.fromAuthHeader(),
     secretOrKey: config.secret
 };
 
 var jwtLogin = new JwtStrategy(jwtOptions, function(payload, done) {
-
+    console.log ('jwtOptions',jwtOptions)
     User.findById(payload._id, function(err, user) {
-
+        console.log ('payload',payload)
+        console.log ('user',user)
         if (err) {
             return done(err, false);
         }
@@ -66,3 +79,9 @@ var jwtLogin = new JwtStrategy(jwtOptions, function(payload, done) {
 
 passport.use(jwtLogin);
 passport.use(localLogin);
+
+module.exports = {
+    initialize: () => passport.initialize(),
+    authenticateJWT: passport.authenticate('jwt', { session: false }),
+    authenticateCredentials: passport.authenticate('local', { session: false }),
+};

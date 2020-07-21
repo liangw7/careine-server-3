@@ -10,10 +10,15 @@ var visitSchema = new mongoose.Schema({
     providerID: {
         type: String
     },
+    provider: {
+        type: Object
+    },
+    patient: {
+        type: Object
+    },
     patientName:{
         type: String
     },
-
     providerName:{
         type: String
     },
@@ -49,6 +54,7 @@ var visitSchema = new mongoose.Schema({
     profile: {
         type: Object
     },
+    profiles: [],
     status: {
         type: String
     }, 
