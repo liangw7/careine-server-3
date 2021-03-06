@@ -1275,8 +1275,8 @@ exports.wechatTicket = function (req, resp) {
  * @param {*} next 
  */
 exports.getUserByPhone = function (req, res, next) {
-    console.log ('user phone number', req.params.phone )
-    User.findOne({ 'phone': req.params.phone }, function (err, data) {
+    console.log ('user phone number', req.body.phone )
+    User.findOne({ 'phone': req.body.phone }, function (err, data) {
         if (err) {
             res.send(err);
         }

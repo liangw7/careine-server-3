@@ -525,7 +525,7 @@ module.exports = function (app) {
   userRoutes.post('/wechatUserInfor', UserController.wechatUserInfor);
   userRoutes.post('/wechatLink', UserController.wechatLink);
   userRoutes.post('/wechatTicket', UserController.wechatTicket);
-  userRoutes.get('/phone/:phone', UserController.getUserByPhone);
+  userRoutes.post('/phone', UserController.getUserByPhone);
   // MedicalHistory Routes
 
 
