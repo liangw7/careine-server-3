@@ -2,7 +2,7 @@ var OrderItem = require('../models/orderItem');
 const mongoose = require('mongoose');
 
 exports.getAll = function(req, res, next) {
-
+console.log ('OrderItem', OrderItem)
     OrderItem.find(function(err, OrderItem) {
 
         if (err) {
@@ -21,6 +21,21 @@ exports.getById = function(req, res, next) {
     console.log('OrderItemId', req.params.orderItemId)
 
     OrderItem.findById({ _id: req.params.orderItemId}, function(err, OrderItem) {
+
+        if (err) {
+            res.send(err);
+        }
+
+        res.json(OrderItem);
+
+    });
+
+}
+exports.searchByFilter = function(req, res, next) {
+
+    console.log('OrderItemId', req.params.orderItemId)
+
+    OrderItem.find(req.body,{ _id:1, label:1,obs:1}, function(err, OrderItem) {
 
         if (err) {
             res.send(err);
@@ -513,9 +528,9 @@ exports.getItems = function(req, res, next) {
  
 exports.getByFilter = function(req, res, next) {
 
-    
+    console.log('orderItem', OrderItem)
  
-    OrderItem.find( req.body, function(err, data) {
+   OrderItem.find( req.body, function(err, data) {
         if (err) {
             res.send(err);
             console.log(err);

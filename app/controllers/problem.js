@@ -14,7 +14,22 @@ exports.getAllProblem = function(req, res, next) {
     });
 
 }
+exports.createMany = function(req, res, next) {
 
+    Problem.insertMany((req.body),
+        function(err, problem) {
+
+            if (err) {
+                res.send(err);
+            }
+
+            res.json(problem);
+
+
+
+        });
+
+}
 
 exports.getById = function(req, res, next) {
 

@@ -15,6 +15,22 @@ exports.getDatas = function(req, res, next) {
     });
 
 }
+exports.createMany = function(req, res, next) {
+
+    Data.insertMany((req.body),
+        function(err, data) {
+
+            if (err) {
+                res.send(err);
+            }
+
+            res.json(data);
+
+
+
+        });
+
+}
 exports.getDatasByPatient = function(req, res, next) {
 
     Data.find(req.body, function(err, data) {
@@ -227,7 +243,7 @@ exports.getPatientsByFilter = function(req, res, next) {
                                     patientID:"$patientID",
                                     name:'$patientData.name',
                                     gender:'$patientData.gender',
-                                    age:'$patientData.age'},
+                                    birthday:'$patientData.birthday'},
                                 values:{$last:"$values"},
                                 optionSums: {$push: '$optionSum'},
                                 count:{$sum:1}
@@ -239,7 +255,7 @@ exports.getPatientsByFilter = function(req, res, next) {
                         patientID:'$_id.patientID',
                         name:'$_id.name',
                         gender:'$_id.gender',
-                        age:'$_id.age',
+                        birthday:'$_id.birthday',
                         values:1,
                         _id:0
                     }},
@@ -257,25 +273,37 @@ exports.getPatientsByFilter = function(req, res, next) {
                         ],
                         "as": "patientData"
                     }},
-            
-                    {"$unwind": "$patientData"},
                 
+                    {"$unwind": "$patientData"},
+                    { "$lookup": {
+                        "let": { "obID": "$patientData.obID" },
+                        "from": "categories",
+                        "pipeline": [
+                        { "$match": { "$expr":
+                                        { "$and":[
+                                            {"$eq":[{"$toString":"$_id"}, {"$toString":"$$obID"} ] },
+                                           
+
+                                                ]} } }
+                        ],
+                        "as": "patientData.ob"
+                    }},
                 //    { "$match": { "patientData.obID": {$in:obList} }},
-            
+                {"$unwind": "$patientData.ob"},
                 {"$project":{
                     patientID:"$patientID",
                     name:'$name',
                     gender:'$gender',
-                    age:'$age',
+                    birthday:'$birthday',
                  //   email: '$patientData.patientEmail',
                     obID:'$patientData.obID',
-                    selectedObs:{name:'$patientData.obName', value:'$patientData.value', values:'$patientData.values'}
+                    selectedObs:{label:'$patientData.ob.label', value:'$patientData.value', values:'$patientData.values'}
             
                 }},
                 {"$group": {_id:{patientID: "$patientID",
                                 name:'$name',
                                 gender:'$gender',
-                                age:'$age',
+                                birthday:'$birthday',
                              //   email:"$email", 
                                 obID:"$obID"},
                         selectedObs: {$last: '$selectedObs'}
@@ -286,7 +314,7 @@ exports.getPatientsByFilter = function(req, res, next) {
                     patientID:"$_id.patientID",
                     name:'$_id.name',
                     gender:'$_id.gender',
-                    age:'$_id.age',
+                    birthday:'$_id.birthday',
                    // email: '$_id.email',
                     obID:'$_id.obID',
                     selectedObs:1
@@ -297,7 +325,7 @@ exports.getPatientsByFilter = function(req, res, next) {
                               //  email:"$email",
                                 name:'$name',
                                 gender:'$gender',
-                                age:'$age'},
+                                birthday:'$birthday'},
                         selectedObs: {$push: '$selectedObs'}
                         }
                 },
@@ -306,7 +334,7 @@ exports.getPatientsByFilter = function(req, res, next) {
                   //  email: '$_id.email',
                     name:'$_id.name',
                     gender:'$_id.gender',
-                    age:'$_id.age',
+                    birthday:'$_id.birthday',
                     selectedObs:1,
                     _id:0
             
@@ -316,7 +344,7 @@ exports.getPatientsByFilter = function(req, res, next) {
                   //  email: '$email',
                     name:'$name',
                     gender:'$gender',
-                    age:'$age',
+                    birthday:'$birthday',
                     selectedObs:1
                 }},
                 

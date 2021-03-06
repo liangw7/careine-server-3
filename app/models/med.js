@@ -16,7 +16,9 @@ var medSchema = new mongoose.Schema({
     name:{
         type: String
     },
-  
+    label:{
+        type:Object
+    },
     medicationItemID:{
         type: String
     },

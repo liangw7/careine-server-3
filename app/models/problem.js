@@ -12,6 +12,10 @@ var problemSchema = new mongoose.Schema({
     problemItemID: {
         type: String
     },
+    problemItem:{
+        type:Object
+    },
+   
    familyMembers:{
        type:[]
    },

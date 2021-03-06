@@ -13,7 +13,22 @@ exports.get = function(req, res, next) {
     });
 
 }
+exports.createMany = function(req, res, next) {
 
+    Med.insertMany((req.body),
+        function(err, Meds) {
+
+            if (err) {
+                res.send(err);
+            }
+
+            res.json(Meds);
+
+
+
+        });
+
+}
 
 exports.getById = function(req, res, next) {
 

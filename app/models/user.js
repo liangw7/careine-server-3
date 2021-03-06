@@ -6,73 +6,76 @@ var UserSchema = new mongoose.Schema({
 
     email: {
         type: String,
-      //  lowercase: true,
-     //   unique: true
+        //  lowercase: true,
+        //   unique: true
 
     },
     weChatID: {
-        type:String
+        type: String
     },
     openID: {
-        type:String
+        type: String
     },
     weChatNickname: {
-        type:String
+        type: String
     },
-    deviceUserID:{
-        type:String
+    deviceUserID: {
+        type: String
     },
-    userName:{
-        type:String
+    userName: {
+        type: String
     },
     password: {
         type: String
 
     },
+    sortNumber: {
+        type: Number
+    },
     role: {
         type: String
     },
-    name:{
+    name: {
         type: String
     },
-    enName:{
-        type:String
-    },
-    phone:{
+    enName: {
         type: String
     },
-    ssn:{
+    phone: {
         type: String
     },
-    city:{
+    ssn: {
         type: String
     },
-    gender:{
+    city: {
         type: String
     },
-    age:{
+    gender: {
+        type: String
+    },
+    age: {
         type: Number
     },
-    ageObj:{
+    ageObj: {
         type: Object
     },
-    birthday:{
+    birthday: {
         type: String
     },
-    photo:{
+    photo: {
         type: String
     },
-   specialty:{
+    specialty: {
         type: String
     },
-    color:{
+    color: {
         type: String
     },
-    desc:{
+    desc: {
         type: String
     },
-    procedureDate:{
-        type:Date
+    procedureDate: {
+        type: Date
     },
     createdBy: {
         type: Object
@@ -82,47 +85,47 @@ var UserSchema = new mongoose.Schema({
     },
 
     activity: { type: Object },
-    profiles:[],
+    profiles: [],
     service: { type: Object },
     marketPlace: { type: Object },
-    providers:[],
-    introForms:[],
-    labs:[],
-    followups:[],
-    serviceList:[],
-    marketList:[],
-    allergyList:[],
-    primaryProblem:{ type: Object },
+    providers: [],
+    introForms: [],
+    labs: [],
+    followups: [],
+    serviceList: [],
+    marketList: [],
+    allergyList: [],
+    primaryProblem: { type: Object },
     userID: {
         type: String
     },
-    status:{
-        type:String
+    status: {
+        type: String
     },
-    title:{
-        type:String
+    title: {
+        type: String
     },
-    enTitle:{
-        type:String
+    enTitle: {
+        type: String
     },
-    desc:{
-        type:String
+    desc: {
+        type: String
     },
-    enDesc:{
-        type:String
+    enDesc: {
+        type: String
     },
-    follow:{
-        type:String
+    follow: {
+        type: String
     },
-    patientLists:[],
-    screeningList:[],
-    educations:[],
-    carePlans:[]
+    patientLists: [],
+    screeningList: [],
+    educations: [],
+    carePlans: []
 }, {
     timestamps: true
 });
 
-UserSchema.pre('save', function(next) {
+UserSchema.pre('save', function (next) {
 
     var user = this;
     var SALT_FACTOR = 5;
@@ -131,13 +134,13 @@ UserSchema.pre('save', function(next) {
         return next();
     }
 
-    bcrypt.genSalt(SALT_FACTOR, function(err, salt) {
+    bcrypt.genSalt(SALT_FACTOR, function (err, salt) {
 
         if (err) {
             return next(err);
         }
 
-        bcrypt.hash(user.password, salt, null, function(err, hash) {
+        bcrypt.hash(user.password, salt, null, function (err, hash) {
 
             if (err) {
                 return next(err);
@@ -152,9 +155,9 @@ UserSchema.pre('save', function(next) {
 
 });
 
-UserSchema.methods.comparePassword = function(passwordAttempt, cb) {
+UserSchema.methods.comparePassword = function (passwordAttempt, cb) {
 
-    bcrypt.compare(passwordAttempt, this.password, function(err, isMatch) {
+    bcrypt.compare(passwordAttempt, this.password, function (err, isMatch) {
 
         if (err) {
             return cb(err);

@@ -14,6 +14,19 @@ exports.getVisits = function(req, res, next) {
     });
 
 }
+exports.getOneVisit = function(req, res, next) {
+    console.log('req.body', req.body)
+    Visit.findOne(req.body,function(err, Visit) {
+
+        if (err) {
+            res.send(err);
+        }
+
+        res.json(Visit);
+
+    });
+
+}
 exports.getFollowupsByDate  = function(req, res) {
 
     var pipeline= [
@@ -111,11 +124,11 @@ exports.getVisitsByPatient = function(req, res, next) {
 
 }
 
-exports.getVisitsByFilter = function(req, res, next) {
+exports.getVisitListByFilter = function(req, res, next) {
 
-    console.log('req.body.filter', req.body.filter)
+    console.log('req.body', req.body)
 
-    Visit.find(req.body.filter, function(err, data) {
+    Visit.find(req.body, {_id:1,type:1, status:1,desc:1,provider:1, visitDate:1,patientID:1},function(err, data) {
         if (err) {
             res.send(err);
             console.log(err);
@@ -132,9 +145,34 @@ exports.getVisitsByFilter = function(req, res, next) {
         };
         next();
 
-    });
+    }).sort({"createdAt": 'desc'});
 
 }
+exports.getVisitsByFilter = function(req, res, next) {
+
+    console.log('req.body', req.body)
+
+    Visit.find(req.body,function(err, data) {
+        if (err) {
+            res.send(err);
+            console.log(err);
+
+        }
+        res.json(data);
+
+        var _send = res.send;
+        var sent = false;
+        res.send = function(data) {
+            if (sent) return;
+            _send.bind(res)(data);
+            sent = true;
+        };
+        next();
+
+    }).sort({"createdAt": 'desc'});
+
+}
+
 
 exports.getMonthlyVisits= function(req, res, next) {
 

@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 
 var visitSchema = new mongoose.Schema({
     desc: {
-        type: String
+        type: Object
     },
     patientID: {
         type: String
@@ -51,10 +51,14 @@ var visitSchema = new mongoose.Schema({
     type: {
         type: String
     },
+    followupType:{
+        type:String
+    },
     profile: {
         type: Object
     },
     profiles: [],
+    forms:[],
     status: {
         type: String
     }, 
