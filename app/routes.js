@@ -74,6 +74,7 @@ var roleList = ['admin', 'provider', 'market'];
 
 var requireAuth = passportService.authenticateJWT,
   requireLogin = passportService.authenticateCredentials;
+  
 // var requireAuth = passportService.authenticate('jwt', { session: false }),
 //     requireLogin = passportService.authenticate('local', { session: false });
 //console.log ('requireAuth',requireAuth)

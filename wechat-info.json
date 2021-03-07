@@ -1,0 +1,15 @@
+{
+  "wechatConfig": {
+    "appId": "wx1456c566ec3e6686",
+    "wechatRedirectUrl": "https://www.digitalbaseas.com/wechat/oauth-callback",
+    "paymentSandBox": false,
+    "store": "FileStore_C:\\Users\\liang\\careline-server-test\\wechat-info.json"
+  },
+  "globalToken": {
+    "count": 0
+  },
+  "urls": {},
+  "oauth": {},
+  "card": {},
+  "mp": {}
+}

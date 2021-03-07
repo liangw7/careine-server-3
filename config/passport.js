@@ -17,14 +17,16 @@ var adminCredential ={
 
 var localLogin = new LocalStrategy(localOptions, function(email, password, done) {
 
-//console.log ('email', email)
+console.log ('email', email)
 //console.log ('adminCredential',adminCredential )
 if (adminCredential.email!=email||adminCredential.password!=password){
+    
     User.findOne({
         email: email
     }, function(err, user) {
 
         if (err) {
+            console.log ('ligin error', err)
             return done(err);
         }
 

@@ -39,7 +39,9 @@ module.exports = {
     appSecret: '8ada6bb8a95c8d79abf7a374688aa9cd',
     mchid: '1601139967',
     partnerKey: 'GNHsDl0y4Y4RNlUAWGXOKcjzc1SraA9X',
-    pfx: require('fs').readFileSync('/Users/ruichen/Downloads/1601139967_20200801_cert/apiclient_cert.p12'), // 证书文件路径
+   // pfx: require('fs').readFileSync('/Users/ruichen/Downloads/1601139967_20200801_cert/apiclient_cert.p12'), // 证书文件路径
+    pfx: require('fs').readFileSync('./apiclient_cert.p12'), // 证书文件路径
+    
     notify_url: encodeURI('http://localhost:8085/api/wx/notify'), // 支付回调网址
     refund_url: encodeURI('http://localhost:8085/api/wx/notifyRefund'),  // 退款结果通知回调地址(选填)  
     spbill_create_ip: '127.0.0.1' //  IP地址
